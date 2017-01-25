@@ -59,7 +59,7 @@ def create_orchestra(input_file_name, output_file_name=None, part_size=16 * 1024
             output.write(input_file_name + "\n")
             file_size = _get_file_size(input_file_name)
             output.write(str(file_size) + "\n")
-
+            output.write(part_size)
             checksums = _get_split_checksums(input_file_name, part_size=part_size)
             output.write(str(len(checksums)) + "\n")
             for part_key in check_sums:
