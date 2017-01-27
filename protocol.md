@@ -133,8 +133,8 @@ The binary encoding is a bitwise representation of what parts are available:
 A few examples:
 E.g a file with 9 parts:
 
-member has all parts: reply = 511  which is 00000001 11111111 (note the leading zeroes in order to make this two bytes)
-member has first and third part: 	reply = 3    which is 00000000 00000101 (note the leading zeroes in order to make this two bytes)
+member has all parts: reply = 511  which is 11111111 11111111 (note the leading ones in order to make this two bytes)
+member has first and third part: 	reply = 3    which is 11111110 00000101 (note the leading ones in order to make this two bytes)
 
 In all cases the number of bytes will be the same, regardless of the whether a member has all parts or 0 parts.
 i.e the number of bytes is floor((num_parts + 7)/8)
@@ -151,7 +151,7 @@ i.e the number of bytes is floor((num_parts + 7)/8)
 	
 ##### 3.4.1 Send a message about the transfer of part, followed immediately by the part: note there is no newline after "DATA"
 			
-		STRT \r\n <FILENAME> \r\n <FULL_FILE_CHECKSUM> \r\n <INTEGER> \r\n DATA
+		STRT \r\n <FILENAME> \r\n <FULL_FILE_CHECKSUM> \r\n <INTEGER> \r\n <DATA>
 
 		Example:
 
