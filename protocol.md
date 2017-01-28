@@ -10,7 +10,7 @@
 ### Key points:
  * All messages start with a 4 character string to identify the message
  * All messages are encoded as UTF-8
- * Throughout this document we write " \r\n " with white space, this is to make the doc. more readable and should not be included in the actual protocol
+ * Throughout this document we write " \r\n " with white space, this is to make the doc. more readable, the white space should not be included in the actual protocol
  * FILENAME should be limited to a maximum of 256 characters
  * Checksums are computed with the SHA-1 checksum
  * All communications are made over a TCP connection
