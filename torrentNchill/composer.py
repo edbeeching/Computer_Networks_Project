@@ -40,6 +40,7 @@ def _get_file_size(file_name):
     except TypeError:
         return -1
 
+
 def _get_file_checksum(file_name):
     with open(file_name, "rb") as file:
         try:
@@ -50,6 +51,7 @@ def _get_file_checksum(file_name):
 
         finally:
             file.close()
+
 
 def create_orchestra(input_file_name, output_file_name=None, part_size=16 * 1024, conductor='localhost:9999'):
     # Create:

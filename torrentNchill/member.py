@@ -17,16 +17,17 @@ class Member:
         # load orch into member
         # dict of parts / checksums
         # listener to find new connections from other peers
-        self.orch_dict = self._load_orch_parameters(orch_filename)
+        self.orch_dict = Member._get_orch_parameters(orch_filename)
 
-        self._check_composition(self.orch_dict.get('composition_name'),
-                                self.orch_dict.get('total_bytes'))
+        Member._write_dummy_composition(self.orch_dict.get('composition_name'),
+                                        self.orch_dict.get('total_bytes'))
 
-        self.parts_dict = self._get_parts_dict(self.orch_dict.get('composition_name'),
-                                               self.orch_dict.get('bytes_per_part'),
-                                               self.orch_dict.get('parts_checksum_dict'))
+        self.parts_dict = Member._get_parts_dict(self.orch_dict.get('composition_name'),
+                                                 self.orch_dict.get('bytes_per_part'),
+                                                 self.orch_dict.get('parts_checksum_dict'))
 
-    def _load_orch_parameters(self, orch_filename):
+    @staticmethod
+    def _get_orch_parameters(orch_filename):
         assert os.path.isfile(orch_filename)
         orch_dict = {}
         with open(orch_filename, 'r') as file:
@@ -48,14 +49,16 @@ class Member:
                 file.close()
         return orch_dict
 
-    def _check_composition(self, composition_name, file_size):
+    @staticmethod
+    def _write_dummy_composition(composition_name, file_size):
 
-        # check filesize is less than 1 gig, to avoid writing massive files to disk by accident
+        # check filesize is less than 1 GB, to avoid writing massive files to disk by accident
         assert file_size < 1024 * 1024 * 1024
 
         if os.path.isfile(composition_name):
             assert os.path.getsize(composition_name) == file_size
         else:
+            # TODO Allocate less memory by writing smaller chunks of data, if this was a 1GB file, 1GB would be alloc.
             byte_buffer = bytearray(file_size)
 
             with open(composition_name, "wb") as file:
@@ -65,7 +68,8 @@ class Member:
                     assert os.path.getsize(composition_name) == file_size
                     file.close()
 
-    def _get_parts_dict(self, composition_name, bytes_per_part, parts_checksum_dict):
+    @staticmethod
+    def _get_parts_dict(composition_name, bytes_per_part, parts_checksum_dict):
         parts_dict = {}
         with open(composition_name, 'rb') as file:
             try:
