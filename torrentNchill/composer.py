@@ -40,6 +40,16 @@ def _get_file_size(file_name):
     except TypeError:
         return -1
 
+def _get_file_checksum(file_name):
+    with open(file_name, "rb") as file:
+        try:
+            hasher = hashlib.sha1()
+            file_bytes = file.read(_get_file_size(file_name))
+            hasher.update(file_bytes)
+            return hasher.hexdigest()
+
+        finally:
+            file.close()
 
 def create_orchestra(input_file_name, output_file_name=None, part_size=16 * 1024, conductor='localhost:9999'):
     # Create:
@@ -57,9 +67,12 @@ def create_orchestra(input_file_name, output_file_name=None, part_size=16 * 1024
         try:
             output.write(conductor + "\n")
             output.write(input_file_name + "\n")
+
+            whole_check_sum = _get_file_checksum(input_file_name)
+            output.write(str(whole_check_sum) + "\n")
             file_size = _get_file_size(input_file_name)
             output.write(str(file_size) + "\n")
-            output.write(part_size)
+            output.write(str(part_size) + "\n")
             checksums = _get_split_checksums(input_file_name, part_size=part_size)
             output.write(str(len(checksums)) + "\n")
             for part_key in check_sums:
@@ -73,7 +86,7 @@ if __name__ == "__main__":
 
     partsize = 16 * 1024  # 16KB chunk size
     filename = "maxresdefault.jpg"
-
+    print(_get_file_checksum(filename))
     check_sums = _get_split_checksums(filename, partsize)
     for key in check_sums:
         (check, size) = check_sums[key]
