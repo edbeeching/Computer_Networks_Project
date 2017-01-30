@@ -134,7 +134,7 @@ A few examples:
 E.g a file with 9 parts:
 
 member has all parts: reply = 511  which is 11111111 11111111 (note the leading ones in order to make this two bytes)
-member has first and third part: 	reply = 3    which is 11111110 00000101 (note the leading ones in order to make this two bytes)
+member has first and third part: 	reply = 5    which is 11111110 00000101 (note the leading ones in order to make this two bytes)
 
 In all cases the number of bytes will be the same, regardless of the whether a member has all parts or 0 parts.
 i.e the number of bytes is floor((num_parts + 7)/8)
