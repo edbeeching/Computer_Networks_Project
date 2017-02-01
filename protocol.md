@@ -4,7 +4,7 @@
 ### Authors:
 * Edward Beeching     (Team D)
 * Valentin Benozillo  (Team E)
-* Jorge Chang         (Team D)
+* Jorge Chong         (Team D)
 * Ishwer Purushotham  (Team F)
 
 ### Key points:
