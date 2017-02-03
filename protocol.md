@@ -4,7 +4,7 @@
 ### Authors:
 * Edward Beeching     (Team D)
 * Valentin Benozillo  (Team E)
-* Jorge Chang         (Team D)
+* Jorge Chong         (Team D)
 * Ishwer Purushotham  (Team F)
 
 ### Key points:
@@ -131,10 +131,22 @@ Example:
 
 The binary encoding is a bitwise representation of what parts are available:
 A few examples:
+
 E.g a file with 9 parts:
 
-member has all parts: reply = 511  which is 11111111 11111111 (note the leading ones in order to make this two bytes)
-member has first and third part: 	reply = 3    which is 11111110 00000101 (note the leading ones in order to make this two bytes)
+member has all parts: 
+
+reply = 1023, which is 00000011 11111111 (note that we add a 1 in front of the number for saying that we start the expression of the parts and the leading zeroes in order to make this two bytes)
+
+member has first and third part:
+
+reply = 517, which is 00000010 00000101 (note that we add a 1 in front of the number for saying that we start the expression of the parts and the leading zeroes in order to make this two bytes)
+
+E.g a file with 8 parts:
+
+member has first, third and sixth parts:
+
+reply = 293, which is 00000001 00100101 (note that the 1 added requires us to have an added byte)
 
 In all cases the number of bytes will be the same, regardless of the whether a member has all parts or 0 parts.
 i.e the number of bytes is floor((num_parts + 7)/8)
