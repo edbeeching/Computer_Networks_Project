@@ -53,7 +53,7 @@ Example:
 ### 2. Member-Conductor communications
 
 #### 2.1 How a member requests a list of IP:ports from the conductor
-   The member sends the following message over TCP (after making a normal connection not the IP and port of the conductor are provided in the .orch file):
+   The member sends the following message over TCP (after making a normal connection, note the IP and port of the conductor as provided in the .orch file):
 
 		DOWN \r\n <FILENAME> \r\n <FULL_FILE_CHECKSUM> \r\n <PORT> \r\n 
 
