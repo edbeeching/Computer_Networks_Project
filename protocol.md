@@ -208,4 +208,4 @@ i.e the number of bytes is floor((num_parts + 7)/8)
 
 		STRT \r\n maxresdefault.jpg \r\n 2953289a34e0cc2bf776decc3f8b86622d66b705 \r\n 5 \r\n 010010101010101010101010 ... 00001101
 		
-8. GOTO 6. Until all parts have been copied. 	(note that in reality there are many members and many simultaneous part requests to different members, but the details of this are implementation specific)
+8. GOTO 6. and repeat until all parts have been copied. (Note that in reality there are many members and many simultaneous part requests to different members, but the details of this are implementation specific)
