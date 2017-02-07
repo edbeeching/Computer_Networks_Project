@@ -1,12 +1,18 @@
 import sys
 import os
 import hashlib
+import time
+from threading import Thread
+import queue
 
-#class OrchInfo:
 
-class Member:
+
+class Member(Thread):
 
     def __init__(self, orch_filename):
+        # Initialise the thread
+        Thread.__init__(self)
+
         # load orch file info and print it
 
         # queue holding messages from connections
@@ -25,6 +31,28 @@ class Member:
         self.parts_dict = Member._get_parts_dict(self.orch_dict.get('composition_name'),
                                                  self.orch_dict.get('bytes_per_part'),
                                                  self.orch_dict.get('parts_checksum_dict'))
+        self.connections_ip_dict = {}
+        self.connections_parts_dict = {}
+        self.connections_queue_dict = {}
+        self.list_of_orch_ips = {}
+        self.director_queue = queue.Queue()
+        #message = {'msg':''}
+        #self.director_queue.put()
+
+        # Thread for file IO
+        # dict of
+
+    def run(self):
+        while(True):
+
+            # Poll queue
+            # Respond to messages
+
+
+
+
+            print("Hello World!")
+            time.sleep(0.1)
 
     @staticmethod
     def _get_orch_parameters(orch_filename):
@@ -91,8 +119,6 @@ class Member:
                 file.close()
         return parts_dict
 
-    def print_info(self):
-        print(self.orch_dict)
 
 
 if __name__ == "__main__":
@@ -102,5 +128,7 @@ if __name__ == "__main__":
 
     orch = 'maxresdefault.jpg.orch'
     member = Member(orch)
+    member.start()
 
-    member.print_info()
+    member.join()
+
