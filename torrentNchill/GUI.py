@@ -40,7 +40,7 @@ class Example(QMainWindow):
         fileMenu = menubar.addMenu('&File')
         fileMenu.addAction(exitAction)
 
-        #toolbar = self.addToolBar('Exit')
+        toolbar = self.addToolBar('Exit')
         toolbar.addAction(exitAction)
 
         #self.setGeometry(300, 300, 350, 250)
