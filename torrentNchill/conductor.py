@@ -24,9 +24,11 @@ class MemberThread(threading.Thread):
 
         print("=== Sending IPs ===")
         fp = open("data/IPs.txt", 'rb')
-        self.membersocket.send(fp.read())
+        self.membersocket.sendall(fp.read())
 
         print("=== Finished sending, member disconnected ===")
+        self.membersocket.shutdown(socket.SHUT_RDWR)
+        self.membersocket.close()
 
 
 tcpsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

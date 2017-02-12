@@ -4,7 +4,8 @@ import hashlib
 import time
 from threading import Thread
 import queue
-
+import socket
+import netutils
 
 
 class Member(Thread):
@@ -36,23 +37,58 @@ class Member(Thread):
         self.connections_queue_dict = {}
         self.list_of_orch_ips = {}
         self.director_queue = queue.Queue()
-        #message = {'msg':''}
-        #self.director_queue.put()
+        message = {'msg': 'CONDUCTOR'}
+        self.director_queue.put(message)
 
         # Thread for file IO
         # dict of
 
     def run(self):
-        while(True):
+        while True:
 
             # Poll queue
+            message = self.director_queue.get()
             # Respond to messages
+            if message['msg'] == 'CONDUCTOR':
+                self._get_ips_from_conductor()
+            elif message['msg'] == 'OTHER':
+                print('Message is other')
+            else:
+                print('Could not read message')
+
+
+
+
+
 
 
 
 
             print("Hello World!")
             time.sleep(0.1)
+
+    def _get_ips_from_conductor(self):
+        cond_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            ip = str.split(self.orch_dict['conductor_ip'], ':')[0]
+            port = str.split(self.orch_dict['conductor_ip'], ':')[1]
+            print(ip, port)
+            if ip != 'localhost':
+                ip = int(ip)
+            cond_socket.connect((ip, int(port)))
+            print('Getting IPs from conductor')
+            msg = netutils.read_line(cond_socket)
+            while msg:
+                print(msg)
+                msg = netutils.read_line(cond_socket)
+        finally:
+
+            print('closing connection')
+            cond_socket.shutdown(socket.SHUT_RDWR)
+            cond_socket.close()
+
+
+
 
     @staticmethod
     def _get_orch_parameters(orch_filename):
