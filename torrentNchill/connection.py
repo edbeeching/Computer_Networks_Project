@@ -1,6 +1,7 @@
 from threading import Thread
 import socket
 import threading
+import testmember
 import queue
 
 """
@@ -29,22 +30,46 @@ class Connection:
     # Read from the queue, build the message according to protocol.md
     # and send it through socket
     def send(self):
+        # If there was no error in the socket communication
         if self._ready:
+            # Always waiting for something to send
             while True:
                 if not self._send_queue.empty():
                     cmd = self._send_queue.get()
                     # Build the message to be sent over socket
-                    data = cmd['data']
-                    msg = '{}\r\n{}\r\n{}\r\n{}\r\n'.format(cmd['msg'], cmd['filename'], cmd['checksum'], cmd['part'])
+                    data = ''
+                    if 'data' in cmd:
+                        data = cmd['data']
+                    msg = '{}\r\n{}\r\n{}\r\n'.format(cmd['msg'], cmd['filename'], cmd['checksum'])
+                    if 'part' in cmd:
+                        msg += '{}\r\n'.format(cmd['part'])
+
+                    # print(msg)
+
                     send_buffer = bytearray()
-                    send_buffer.extend(msg)
+                    send_buffer.extend(msg.encode('ascii'))
                     for byte in data:
                         send_buffer.extend(byte)
 
-                    # Missing: Error handling
-                    self._socket.sendall(send_buffer)
-                    # If there is an error in the socket (other end disconnects, etc)
+                    # If there is an error in the socket (the other end disconnects, etc)
                     # shutdown the socket an inform the Member, and set self._ready to False
+                    err_msg = ''
+                    try:
+                        print(send_buffer)
+                        self._socket.sendall(send_buffer)
+                    except socket.error as se:
+                        err_msg = se.strerror
+                    except:
+                        err_msg = 'Unexpected Error'
+                    finally:
+                        if err_msg != '':
+                            cmd = {'msg': 'ERROR', 'error': err_msg}
+                            # Put the error in the Member's queue
+                            self._member.add_command(cmd)
+                            # Set _ready to False to avoid reading over a faulty socket
+                            self._ready = False
+                            # Close the socket
+                            self._socket.close()
 
     # Read from a socket and interpret the protocol
     # See protocol.md
@@ -54,15 +79,31 @@ class Connection:
         if self._ready:
             while True:
                 if not self._cmd_read:
-                    last_cmd = Connection._read_line(self._socket)
-                    # 1. Interpret command:
-                    if last_cmd in ['NONE', 'SEND', 'STRT']:
-                        self._cmd_read = True
-                    else:
-                        None
-                        # Error in the message received, raise an exception and notify to
-                        # the member to take action
+                    err_msg = ''
+                    try:
+                        last_cmd = Connection._read_line(self._socket)
+                    except socket.error as se:
+                        err_msg = se.strerror
+                    except:
+                        err_msg = 'Unexpected Error'
+                    finally:
+                        if err_msg != '':
+                            cmd = {'msg': 'ERROR', 'error': err_msg}
+                            # Put the error in the Member's queue
+                            self._member.add_command(cmd)
+                            # Set _ready to False to avoid reading over a faulty socket
+                            self._ready = False
+                            # Close the socket
+                            self._socket.close()
 
+                    # 1. Interpret command, if no errors in the socket connection:
+                    if err_msg == '':
+                        if last_cmd in ['DOWN', 'NONE', 'SEND', 'STRT']:
+                            self._cmd_read = True
+                        else:
+                            # Error in the message received, raise an exception and notify to
+                            # the member to take action
+                            self._member.add_command({'msg': 'ERROR', 'error': 'Bad Command Received'})
                 else:
                     # 2. Read the rest of the request
                     # Cmd = SEND, read 3 lines
@@ -76,24 +117,59 @@ class Connection:
 
                     # Cmd = STRT, read 3 lines + data
                     # STRT \r\n <FILENAME> \r\n <FULL_FILE_CHECKSUM> \r\n <INTEGER> \r\n <DATA>
-                    filename = Connection._read_line(self._socket)
-                    checksum = Connection._read_line(self._socket)
-                    part = Connection._read_line(self._socket)
+                    err_msg = ''
+                    try:
+                        filename = Connection._read_line(self._socket)
+                        checksum = Connection._read_line(self._socket)
+                        part = Connection._read_line(self._socket)
+                    except socket.error as se:
+                        err_msg = se.strerror
+                    except:
+                        err_msg = 'Unexpected Error'
+                    finally:
+                        if err_msg != '':
+                            cmd = {'msg': 'ERROR', 'error': err_msg}
+                            # Put the error in the Member's queue
+                            self._member.add_command(cmd)
+                            # Set _ready to False to avoid reading over a faulty socket
+                            self._ready = False
+                            # Close the socket
+                            self._socket.close()
+                        else:
+                            n_bytes = ''
+                            command = {'msg': last_cmd,
+                                       'filename': filename,
+                                       'checksum': checksum,
+                                       'part': part
+                                       }
+                            if last_cmd == 'STRT':
+                                # To read the bynary data, we need to know how many bytes to read from the
+                                # socket therefore, we have to query the member about the number of bytes
+                                # of a specific part
+                                num_of_bytes = self._member.get_num_of_bytes(filename, part)
+                                err_msg = ''
+                                try:
+                                    n_bytes = Connection._read_n_bytes(self._socket, num_of_bytes,
+                                                                       self._recv_buffer_size)
+                                except socket.error as se:
+                                    err_msg = se.strerror
+                                except:
+                                    err_msg = 'Unexpected Error'
+                                finally:
+                                    if err_msg != '':
+                                        cmd = {'msg': 'ERROR', 'error': err_msg}
+                                        # Put the error in the Member's queue
+                                        self._member.add_command(cmd)
+                                        # Set _ready to False to avoid reading over a faulty socket
+                                        self._ready = False
+                                        # Close the socket
+                                        self._socket.close()
 
-                    # To read the bynary data, we need to know how many bytes to read from the
-                    # socket therefore, we have to query the member about the number of bytes
-                    # of a specific part
-                    num_of_bytes = self._member.get_num_of_bytes(filename, part)
-                    n_bytes = Connection._read_n_bytes(self._socket, num_of_bytes, self._recv_buffer_size)
-                    self._cmd_read = False
-
-                    # Add the request to the Member's queue
-                    command = {'msg': last_cmd,
-                               'filename': filename,
-                               'checksum': checksum,
-                               'part': part,
-                               'data': n_bytes}
-                    self._member.put(command)
+                            self._cmd_read = False
+                            command['data'] = n_bytes
+                            # Add the request to the Member's queue
+                            self._member.add_command(command)
+                            print(command)
 
     # Put a message in the queue
     # Message has the format: dictionary of key, value pairs, example:
@@ -108,7 +184,7 @@ class Connection:
         res = b""
         was_r = False
         while True:
-            b = f.recv(1)
+            b = sock.recv(1)
             if len(b) == 0:
                 return None
             if b == b"\n" and was_r:
@@ -155,8 +231,9 @@ if __name__ == "__main__":
     # Examples:
 
     # 1. Listening for a connection in port PORT
-    MBR_ADDRESS = 'localhost'
-    MBR_PORT = 7666
-    mbr_socket = socket.socket()
-    mbr_socket.bind((MBR_ADDRESS, MBR_PORT))
-    mbr_socket.listen()
+    None
+    #MBR_ADDRESS = 'localhost'
+    #MBR_PORT = 7666
+    #mbr_socket = socket.socket()
+    #mbr_socket.bind((MBR_ADDRESS, MBR_PORT))
+    #mbr_socket.listen()
