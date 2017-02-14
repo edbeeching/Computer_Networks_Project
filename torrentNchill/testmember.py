@@ -4,6 +4,7 @@ import string
 import socket
 import connection
 import argparse
+import member
 
 """
  Just for testing ideas of the interaction between a Member and its connetions
@@ -14,14 +15,18 @@ import argparse
 
 class TestMember:
     _connections = {}
+    _dictionary = {}
 
-    def __init__(self, port):
+    def __init__(self, port, orch_filename):
         self._queue = queue.Queue()
         self._port = port
+        self._dictionary = member.Member._get_orch_parameters(orch_filename)
+        self._queue = queue.Queue()
 
     def connect(self, ip, port):
         sock = socket.create_connection((ip, port))
-        conn = connection.Connection(sock, self)
+        send_queue = queue.Queue()
+        conn = connection.Connection(sock, self._dictionary, send_queue, self._queue)
         self._connections[ip + ':' + str(port)] = conn
         conn.start()
 
@@ -39,7 +44,8 @@ class TestMember:
                 ip, port = sock.getpeername()
 
                 # Verify address and port in the dictionary
-                conn = connection.Connection(sock, self)
+                send_queue = queue.Queue()
+                conn = connection.Connection(sock, self._dictionary, send_queue, self._queue)
                 conn.start()
                 self._connections[ip + ':' + str(port)] = conn
 
@@ -51,10 +57,17 @@ class TestMember:
 
     # Add a command for sending
     def add_command_to_send_queue(self, ip, port, cmd):
-        self._connections[ip + ':' + str(port)].put_message(cmd)
+        self._connections[ip + ':' + str(port)]._send_queue.put(cmd)
 
     def get_num_of_bytes(self, filename, part):
         return 10
+
+    def process_queue(self):
+        None
+
+    def run_forever(self):
+        r = Thread(target=self.process_queue)
+        r.start()
 
 if __name__ == "__main__":
     # Creates a number of messages to send to the member
@@ -65,15 +78,18 @@ if __name__ == "__main__":
                         action="store_true")
     parser.add_argument('n', nargs=1)
     args = parser.parse_args()
+
+    orch_filename = 'maxresdefault.jpg.orch'
+
+
     if args.listen:
         print("Listening...")
-
-        M = TestMember(int(args.n[0]))
+        M = TestMember(int(args.n[0]), orch_filename)
         M.listen()
 
     if args.connect:
         print("Connecting...")
-        M = TestMember(0)
+        M = TestMember(0, orch_filename)
         adr = args.n[0].split(':')
         ip = adr[0]
         port = int(adr[1])
