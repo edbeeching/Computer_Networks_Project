@@ -44,7 +44,7 @@ class Connection:
                     elif cmd['msg'] == 'SEND_PARTS_LIST':
                         msg = '{}\r\n{}\r\n{}\r\n{}\r\n'.format('SEND', self._dictionary['composition_name'],
                                                           self._dictionary['full_checksum'], str(cmd[parts_list]))
-                    else
+                    else:
                         None
 
                     # Build the message to be sent over socket
