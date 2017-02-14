@@ -12,12 +12,12 @@ import copy
 '''
     The member communicates with instances of the Connection Class with the following messages:
         # DIRECTOR RECEIVES
-            message = {'msg': 'RECEIVED_PART', 'part': number, 'data': data}
-            message = {'msg': 'RECEIVED_PARTS_LIST', 'parts_list': parts_list}
-            message = {'msg': 'DISCONNECTED'}
-            message = {'msg': 'PART_REQUEST','part': number}
-            message = {'msg': 'PARTS_LIST_REQUEST'}
-            message = {'msg': 'BAD_FILE_REQUEST', 'filename': filename, 'checksum': checksum, 'part': number}
+            message = {'msg': 'RECEIVED_PART', 'conn':Connection, 'part': number, 'data': data}
+            message = {'msg': 'RECEIVED_PARTS_LIST', 'conn':Connection, 'parts_list': parts_list}
+            message = {'msg': 'DISCONNECTED','conn':Connection }
+            message = {'msg': 'PART_REQUEST','conn':Connection,'part': number}
+            message = {'msg': 'PARTS_LIST_REQUEST','conn':Connection}
+            message = {'msg': 'BAD_FILE_REQUEST',,'conn':Connection 'filename': filename, 'checksum': checksum, 'part': number}
 
         # DIRECTOR SENDS
             message = {'msg': 'SEND_PART', 'part': number, 'data': data}
@@ -80,6 +80,10 @@ class Member(Thread):
                 self._get_ips_from_conductor()
             elif message['msg'] == 'POLL':
                 self._poll_ips()
+            elif message['msg'] == 'PARTS_LIST_REQUEST':
+                self._handle_parts_list_request(message)
+            elif message['msg'] == 'RECEIVED_PARTS_LIST':
+                self._handle_received_parts_list(message)
             elif message['msg'] == 'NEWCON':
                 socket = message['sock']
                 self._create_connection(socket)
@@ -89,16 +93,21 @@ class Member(Thread):
             else:
                 print('Could not read message')
 
-
-
-
-
-
-
-
-
-            print("Hello World!")
             time.sleep(0.1)
+
+    def _handle_parts_list_request(self, message):
+
+        #self.parts_dict
+        # parts_int = get_part_int(self.parts_dict)
+        parts_int = 10
+        conn = message['conn']
+        con_queue = self.connections_queue_dict[conn]
+
+        con_queue.put(parts_int)
+
+    def _handle_received_parts_list(self, message):
+        conn = message['conn']
+        print("parts list received", message['parts_list'])
 
     def _get_ips_from_conductor(self):
         ip_list = []
@@ -132,6 +141,7 @@ class Member(Thread):
 
     def _poll_ips(self):
         for ip in self.list_of_orch_ips.keys():
+            print(ip)
             if ip in self.connections_ip_dict:
                 pass
             else:

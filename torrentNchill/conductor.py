@@ -33,7 +33,7 @@ class MemberThread(threading.Thread):
 
 tcpsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 tcpsock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-tcpsock.bind(("", 9999))
+tcpsock.bind(('localhost', 9999))
 
 while True:
     tcpsock.listen(10)
