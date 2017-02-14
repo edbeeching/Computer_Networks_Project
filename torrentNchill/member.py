@@ -6,6 +6,7 @@ from threading import Thread
 import queue
 import socket
 import netutils
+import connection_handler
 
 
 class Member(Thread):
@@ -40,6 +41,11 @@ class Member(Thread):
         message = {'msg': 'CONDUCTOR'}
         self.director_queue.put(message)
 
+        # Start thread that handles connections
+        self.connect_queue = queue.Queue()
+        con_handler = connection_handler.ConnectionHandler(self.connect_queue, self.director_queue)
+        con_handler.start()
+
         # Thread for file IO
         # dict of
 
@@ -51,6 +57,9 @@ class Member(Thread):
             # Respond to messages
             if message['msg'] == 'CONDUCTOR':
                 self._get_ips_from_conductor()
+            elif message['msg'] == 'POLL':
+                self._poll_ips()
+                print('Message is poll')
             elif message['msg'] == 'OTHER':
                 print('Message is other')
             else:
@@ -68,6 +77,7 @@ class Member(Thread):
             time.sleep(0.1)
 
     def _get_ips_from_conductor(self):
+        ip_list = []
         cond_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             ip = str.split(self.orch_dict['conductor_ip'], ':')[0]
@@ -79,6 +89,7 @@ class Member(Thread):
             print('Getting IPs from conductor')
             msg = netutils.read_line(cond_socket)
             while msg:
+                ip_list.append(msg)
                 print(msg)
                 msg = netutils.read_line(cond_socket)
         finally:
@@ -87,8 +98,22 @@ class Member(Thread):
             cond_socket.shutdown(socket.SHUT_RDWR)
             cond_socket.close()
 
+        for ip in ip_list:
+            if ip in self.list_of_orch_ips:
+                pass
+            else:
+                self.list_of_orch_ips[ip] = 1  # IPs can have ratings in case they behave badly
+        message = {'msg': 'POLL'}
+        self.director_queue.put(message)
 
-
+    def _poll_ips(self):
+        for ip in self.list_of_orch_ips.keys():
+            if ip in self.connections_ip_dict:
+                pass
+            else:
+                self._create_connection(ip)
+    def _create_connection(self, ip):
+        
 
     @staticmethod
     def _get_orch_parameters(orch_filename):
