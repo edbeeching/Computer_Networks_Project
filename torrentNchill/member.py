@@ -7,7 +7,25 @@ import queue
 import socket
 import netutils
 import connection_handler
+import connection
+import copy
+'''
+    The member communicates with instances of the Connection Class with the following messages:
+        # DIRECTOR RECEIVES
+            message = {'msg': 'RECEIVED_PART', 'part': number, 'data': data}
+            message = {'msg': 'RECEIVED_PARTS_LIST', 'parts_list': parts_list}
+            message = {'msg': 'DISCONNECTED'}
+            message = {'msg': 'PART_REQUEST','part': number}
+            message = {'msg': 'PARTS_LIST_REQUEST'}
+            message = {'msg': 'BAD_FILE_REQUEST', 'filename': filename, 'checksum': checksum, 'part': number}
 
+        # DIRECTOR SENDS
+            message = {'msg': 'SEND_PART', 'part': number, 'data': data}
+            message = {'msg': 'SEND_PARTS_LIST', 'parts_list': number}
+            message = {'msg': 'DISCONNECT'}
+            message = {'msg': 'REQUEST_PART', 'part': number}
+            message = {'msg': 'REQUEST_PARTS_LIST'}
+'''
 
 class Member(Thread):
 
@@ -34,6 +52,7 @@ class Member(Thread):
                                                  self.orch_dict.get('bytes_per_part'),
                                                  self.orch_dict.get('parts_checksum_dict'))
         self.connections_ip_dict = {}
+        self.ip_connections_dict = {}
         self.connections_parts_dict = {}
         self.connections_queue_dict = {}
         self.list_of_orch_ips = {}
@@ -43,13 +62,15 @@ class Member(Thread):
 
         # Start thread that handles connections
         self.connect_queue = queue.Queue()
-        con_handler = connection_handler.ConnectionHandler(self.connect_queue, self.director_queue)
-        con_handler.start()
+        self.con_handler = connection_handler.ConnectionHandler(self.connect_queue, self.director_queue)
+
 
         # Thread for file IO
         # dict of
 
     def run(self):
+        self.con_handler.start()
+        # file_handler.start()
         while True:
 
             # Poll queue
@@ -59,6 +80,9 @@ class Member(Thread):
                 self._get_ips_from_conductor()
             elif message['msg'] == 'POLL':
                 self._poll_ips()
+            elif message['msg'] == 'NEWCON':
+                socket = message['sock']
+                self._create_connection(socket)
                 print('Message is poll')
             elif message['msg'] == 'OTHER':
                 print('Message is other')
@@ -111,9 +135,29 @@ class Member(Thread):
             if ip in self.connections_ip_dict:
                 pass
             else:
-                self._create_connection(ip)
-    def _create_connection(self, ip):
-        
+                [ip, port] = str(ip).split(':')
+                print('Connecting', ip, port)
+                message = {'msg': 'CRTCON', 'ip': ip, 'port': port}
+                self.connect_queue.put(message)
+
+    def _create_connection(self, socket):
+        #socket, dict, directors queue, sending queue
+
+        send_queue = queue.Queue()
+        message = {'msg': 'REQUEST_PARTS_LIST'}
+
+        send_queue.put(message)
+        # Using deep copy to ensure there are no race conditions on orch dict
+        con = connection.Connection(socket, copy.deepcopy(self.orch_dict), send_queue, self.director_queue)
+        con.start()
+        # Set up the dictionaries
+
+        ip, port = socket.getpeername()
+        self.connections_ip_dict[con] = ip
+        self.ip_connections_dict[ip] = con
+        self.parts_dict[con] = 0
+        self.connections_queue_dict[con] = send_queue
+
 
     @staticmethod
     def _get_orch_parameters(orch_filename):

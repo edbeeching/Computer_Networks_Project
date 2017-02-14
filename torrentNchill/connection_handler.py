@@ -25,6 +25,13 @@ class ConnectionHandler(Thread):
                 clientsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 try:
                     clientsocket.connect((ip, port))
+                    message = {'msg': 'NEWCON', 'sock': clientsocket}
+
+                    self.out_queue.put(message)
+
+
+
+
                 finally:
                     print("Exception connecting to", ip, port)
             elif message['msg'] == 'KILL':
@@ -41,7 +48,7 @@ class ConnectionHandler(Thread):
             while True:
                 (clientsocket, addr) = server_socket.accept()
 
-                message = {'msg': 'NEWCON', 'sock': clientsocket, 'addr': addr}
+                message = {'msg': 'NEWCON', 'sock': clientsocket}
 
                 out_queue.put(message)
 
