@@ -20,7 +20,8 @@ class ConnectionHandler(Thread):
 
             if message['msg'] == 'CRTCON':
                 ip = message['ip']
-                port = message['port']
+                port = int(message['port'])
+                print('Connection to ip:', ip, 'port', port)
 
                 clientsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 try:
@@ -29,11 +30,12 @@ class ConnectionHandler(Thread):
 
                     self.out_queue.put(message)
 
-
-
+                except:
+                    print('exception')
 
                 finally:
                     print("Exception connecting to", ip, port)
+
             elif message['msg'] == 'KILL':
                 break
             else:
@@ -42,7 +44,7 @@ class ConnectionHandler(Thread):
     def _connection_listener(self, out_queue):
         try:
             server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            server_socket.bind(('localhost', 9999))
+            server_socket.bind(('localhost', 10001))
             server_socket.listen(5)
 
             while True:
