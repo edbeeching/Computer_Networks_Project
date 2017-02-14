@@ -76,24 +76,41 @@ class Member(Thread):
             # Poll queue
             message = self.director_queue.get()
             # Respond to messages
-            if message['msg'] == 'CONDUCTOR':
-                self._get_ips_from_conductor()
-            elif message['msg'] == 'POLL':
-                self._poll_ips()
-            elif message['msg'] == 'PARTS_LIST_REQUEST':
-                self._handle_parts_list_request(message)
-            elif message['msg'] == 'RECEIVED_PARTS_LIST':
-                self._handle_received_parts_list(message)
-            elif message['msg'] == 'NEWCON':
-                socket = message['sock']
-                self._create_connection(socket)
-                print('Message is poll')
+
+            if self._handle_director_connection_msg(message):
+                print(message, ' was handled by PDC')
+            elif self._handle_director_con_handle_msg(message):
+                print(message, ' was handled by PDCH')
             elif message['msg'] == 'OTHER':
                 print('Message is other')
             else:
                 print('Could not read message')
 
             time.sleep(0.1)
+
+    def _handle_director_connection_msg(self, message):
+
+        if message['msg'] == 'PARTS_LIST_REQUEST':
+            self._handle_parts_list_request(message)
+            return True
+        elif message['msg'] == 'RECEIVED_PARTS_LIST':
+            self._handle_received_parts_list(message)
+            return True
+        else:
+            return False
+
+    def _handle_director_con_handle_msg(self, message):
+        if message['msg'] == 'CONDUCTOR':
+            self._get_ips_from_conductor()
+            return True
+        elif message['msg'] == 'POLL':
+            self._poll_ips()
+            return True
+        elif message['msg'] == 'NEWCON':
+            socket = message['sock']
+            return True
+        else:
+            return False
 
     def _handle_parts_list_request(self, message):
 
@@ -103,7 +120,9 @@ class Member(Thread):
         conn = message['conn']
         con_queue = self.connections_queue_dict[conn]
 
-        con_queue.put(parts_int)
+        message = {'msg': 'SEND_PARTS_LIST', 'parts_list': parts_int}
+
+        con_queue.put(message)
 
     def _handle_received_parts_list(self, message):
         conn = message['conn']
@@ -123,7 +142,7 @@ class Member(Thread):
             msg = netutils.read_line(cond_socket)
             while msg:
                 ip_list.append(msg)
-                print(msg)
+                print('Received message:',msg)
                 msg = netutils.read_line(cond_socket)
         finally:
 
@@ -136,17 +155,18 @@ class Member(Thread):
                 pass
             else:
                 self.list_of_orch_ips[ip] = 1  # IPs can have ratings in case they behave badly
+        print('list of ips is:', self.list_of_orch_ips)
         message = {'msg': 'POLL'}
         self.director_queue.put(message)
 
     def _poll_ips(self):
         for ip in self.list_of_orch_ips.keys():
-            print(ip)
+            print('poll ips trying to connect to', ip)
             if ip in self.connections_ip_dict:
                 pass
             else:
                 [ip, port] = str(ip).split(':')
-                print('Connecting', ip, port)
+                print('POLL Connecting', ip, port)
                 message = {'msg': 'CRTCON', 'ip': ip, 'port': port}
                 self.connect_queue.put(message)
 

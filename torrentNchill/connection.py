@@ -35,52 +35,52 @@ class Connection:
         if self._ready:
             # Always waiting for something to send
             while True:
-                if not self._send_queue.empty():
-                    cmd = self._send_queue.get()
-                    if cmd['msg'] == 'REQUEST_PARTS_LIST':
-                        msg = '{}\r\n{}\r\n{}\r\n'.format('DOWN', self._dictionary['composition_name'],
-                                                          self._dictionary['full_checksum'])
-                        print('Sending message: {}'.format(msg))
-                    elif cmd['msg'] == 'SEND_PARTS_LIST':
-                        msg = '{}\r\n{}\r\n{}\r\n{}\r\n'.format('SEND', self._dictionary['composition_name'],
-                                                          self._dictionary['full_checksum'], str(cmd[parts_list]))
-                    else
-                        None
+                #if not self._send_queue.empty():
+                cmd = self._send_queue.get()
+                if cmd['msg'] == 'REQUEST_PARTS_LIST':
+                    msg = '{}\r\n{}\r\n{}\r\n'.format('DOWN', self._dictionary['composition_name'],
+                                                      self._dictionary['full_checksum'])
+                    print('Sending message: {}'.format(msg))
+                elif cmd['msg'] == 'SEND_PARTS_LIST':
+                    msg = '{}\r\n{}\r\n{}\r\n{}\r\n'.format('SEND', self._dictionary['composition_name'],
+                                                      self._dictionary['full_checksum'], str(cmd['parts_list']))
+                else:
+                    pass
 
-                    # Build the message to be sent over socket
-                    #data = ''
-                    #if 'data' in cmd:
-                    #    data = cmd['data']
-                    #msg = '{}\r\n{}\r\n{}\r\n'.format(cmd['msg'], cmd['filename'], cmd['checksum'])
-                    #if 'part' in cmd:
-                    #    msg += '{}\r\n'.format(cmd['part'])
+                # Build the message to be sent over socket
+                #data = ''
+                #if 'data' in cmd:
+                #    data = cmd['data']
+                #msg = '{}\r\n{}\r\n{}\r\n'.format(cmd['msg'], cmd['filename'], cmd['checksum'])
+                #if 'part' in cmd:
+                #    msg += '{}\r\n'.format(cmd['part'])
 
-                    # print(msg)
+                # print(msg)
 
-                    send_buffer = bytearray()
-                    send_buffer.extend(msg.encode('ascii'))
-                    #for byte in data:
-                    #    send_buffer.extend(byte)
+                send_buffer = bytearray()
+                send_buffer.extend(msg.encode('ascii'))
+                #for byte in data:
+                #    send_buffer.extend(byte)
 
-                    # If there is an error in the socket (the other end disconnects, etc)
-                    # shutdown the socket an inform the Member, and set self._ready to False
-                    err_msg = ''
-                    try:
-                        print(send_buffer)
-                        self._socket.sendall(send_buffer)
-                    except socket.error as se:
-                        err_msg = se.strerror
-                    except:
-                        err_msg = 'Unexpected Error'
-                    finally:
-                        if err_msg != '':
-                            cmd = {'msg': 'ERROR', 'conn': self, 'error': err_msg}
-                            # Put the error in the Member's queue
-                            self._member_queue.put(cmd)
-                            # Set _ready to False to avoid reading over a faulty socket
-                            self._ready = False
-                            # Close the socket
-                            self._socket.close()
+                # If there is an error in the socket (the other end disconnects, etc)
+                # shutdown the socket an inform the Member, and set self._ready to False
+                err_msg = ''
+                try:
+                    print(send_buffer)
+                    self._socket.sendall(send_buffer)
+                except socket.error as se:
+                    err_msg = se.strerror
+                except:
+                    err_msg = 'Unexpected Error'
+                finally:
+                    if err_msg != '':
+                        cmd = {'msg': 'ERROR', 'conn': self, 'error': err_msg}
+                        # Put the error in the Member's queue
+                        self._member_queue.put(cmd)
+                        # Set _ready to False to avoid reading over a faulty socket
+                        self._ready = False
+                        # Close the socket
+                        self._socket.close()
 
     # Read from a socket and interpret the protocol
     # See protocol.md

@@ -16,6 +16,7 @@ class ConnectionHandler(Thread):
     def run(self):
         self.listener.start()
         while True:
+            print('Looking at connection handler queue')
             message = self.in_queue.get()
 
             if message['msg'] == 'CRTCON':
@@ -42,13 +43,16 @@ class ConnectionHandler(Thread):
                 print("Message is not understood")
 
     def _connection_listener(self, out_queue):
+        print('Starting listener')
         try:
             server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            server_socket.bind(('localhost', 10001))
+            server_socket.bind(('0.0.0.0', 10001))
             server_socket.listen(5)
 
             while True:
+                print('Trying to accept')
                 (clientsocket, addr) = server_socket.accept()
+                print('Client connected at', addr)
 
                 message = {'msg': 'NEWCON', 'sock': clientsocket}
 
