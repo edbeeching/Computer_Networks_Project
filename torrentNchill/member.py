@@ -84,7 +84,7 @@ class Member(Thread):
             elif message['msg'] == 'OTHER':
                 print('Message is other')
             else:
-                print('Could not read message')
+                print('Could not read message', message)
 
             time.sleep(0.1)
 
@@ -134,22 +134,22 @@ class Member(Thread):
         try:
             ip = str.split(self.orch_dict['conductor_ip'], ':')[0]
             port = str.split(self.orch_dict['conductor_ip'], ':')[1]
-            print(ip, port)
-            if ip != 'localhost':
-                ip = int(ip)
+
             cond_socket.connect((ip, int(port)))
-            print('Getting IPs from conductor')
+            print('Getting IPs from conductor on IP', ip, 'port', port)
             msg = netutils.read_line(cond_socket)
             while msg:
                 ip_list.append(msg)
-                print('Received message:',msg)
+                print('Received message:', msg)
                 msg = netutils.read_line(cond_socket)
         finally:
-
-            print('closing connection')
-            cond_socket.shutdown(socket.SHUT_RDWR)
-            cond_socket.close()
-
+            try:
+                print('trying to closing connection')
+                cond_socket.shutdown(socket.SHUT_RDWR)
+                cond_socket.close()
+            finally:
+                print('Connection closed')
+        print(ip_list)
         for ip in ip_list:
             if ip in self.list_of_orch_ips:
                 pass
