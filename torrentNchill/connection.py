@@ -35,15 +35,21 @@ class Connection:
         if self._ready:
             # Always waiting for something to send
             while True:
+<<<<<<< HEAD
                 print("Sending Thread...")
                 cmd = self._send_queue.get()
                 print("Command: {}", cmd['msg'])
+=======
+                #if not self._send_queue.empty():
+                cmd = self._send_queue.get()
+>>>>>>> origin/master
                 if cmd['msg'] == 'REQUEST_PARTS_LIST':
                     msg = '{}\r\n{}\r\n{}\r\n'.format('DOWN', self._dictionary['composition_name'],
                                                       self._dictionary['full_checksum'])
                     print('Sending message: {}'.format(msg))
                 elif cmd['msg'] == 'SEND_PARTS_LIST':
                     msg = '{}\r\n{}\r\n{}\r\n{}\r\n'.format('SEND', self._dictionary['composition_name'],
+<<<<<<< HEAD
                                                             self._dictionary['full_checksum'], str(cmd['parts_list']))
                 elif cmd['msg'] == 'REQUEST_PART':
                     msg = '{}\r\n{}\r\n{}\r\n{}\r\n'.format('PART', self._dictionary['composition_name'],
@@ -57,6 +63,25 @@ class Connection:
                 send_buffer = bytearray()
                 send_buffer.extend(msg.encode('ascii'))
                 # for byte in data:
+=======
+                                                      self._dictionary['full_checksum'], str(cmd['parts_list']))
+                else:
+                    pass
+
+                # Build the message to be sent over socket
+                #data = ''
+                #if 'data' in cmd:
+                #    data = cmd['data']
+                #msg = '{}\r\n{}\r\n{}\r\n'.format(cmd['msg'], cmd['filename'], cmd['checksum'])
+                #if 'part' in cmd:
+                #    msg += '{}\r\n'.format(cmd['part'])
+
+                # print(msg)
+
+                send_buffer = bytearray()
+                send_buffer.extend(msg.encode('ascii'))
+                #for byte in data:
+>>>>>>> origin/master
                 #    send_buffer.extend(byte)
 
                 # If there is an error in the socket (the other end disconnects, etc)

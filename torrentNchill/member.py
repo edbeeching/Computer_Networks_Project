@@ -76,24 +76,41 @@ class Member(Thread):
             # Poll queue
             message = self.director_queue.get()
             # Respond to messages
-            if message['msg'] == 'CONDUCTOR':
-                self._get_ips_from_conductor()
-            elif message['msg'] == 'POLL':
-                self._poll_ips()
-            elif message['msg'] == 'PARTS_LIST_REQUEST':
-                self._handle_parts_list_request(message)
-            elif message['msg'] == 'RECEIVED_PARTS_LIST':
-                self._handle_received_parts_list(message)
-            elif message['msg'] == 'NEWCON':
-                socket = message['sock']
-                self._create_connection(socket)
-                print('Message is poll')
+
+            if self._handle_director_connection_msg(message):
+                print(message, ' was handled by PDC')
+            elif self._handle_director_con_handle_msg(message):
+                print(message, ' was handled by PDCH')
             elif message['msg'] == 'OTHER':
                 print('Message is other')
             else:
-                print('Could not read message')
+                print('Could not read message', message)
 
             time.sleep(0.1)
+
+    def _handle_director_connection_msg(self, message):
+
+        if message['msg'] == 'PARTS_LIST_REQUEST':
+            self._handle_parts_list_request(message)
+            return True
+        elif message['msg'] == 'RECEIVED_PARTS_LIST':
+            self._handle_received_parts_list(message)
+            return True
+        else:
+            return False
+
+    def _handle_director_con_handle_msg(self, message):
+        if message['msg'] == 'CONDUCTOR':
+            self._get_ips_from_conductor()
+            return True
+        elif message['msg'] == 'POLL':
+            self._poll_ips()
+            return True
+        elif message['msg'] == 'NEWCON':
+            socket = message['sock']
+            return True
+        else:
+            return False
 
     def _handle_parts_list_request(self, message):
 
@@ -104,6 +121,11 @@ class Member(Thread):
         con_queue = self.connections_queue_dict[conn]
         message = {'msg': 'SEND_PARTS_LIST', 'parts_list': parts_int}
 
+<<<<<<< HEAD
+=======
+        message = {'msg': 'SEND_PARTS_LIST', 'parts_list': parts_int}
+
+>>>>>>> origin/master
         con_queue.put(message)
 
     def _handle_received_parts_list(self, message):
@@ -116,38 +138,45 @@ class Member(Thread):
         try:
             ip = str.split(self.orch_dict['conductor_ip'], ':')[0]
             port = str.split(self.orch_dict['conductor_ip'], ':')[1]
+<<<<<<< HEAD
             print(ip, port)
             #if ip != 'localhost':
             #    ip = int(ip)
+=======
+
+>>>>>>> origin/master
             cond_socket.connect((ip, int(port)))
-            print('Getting IPs from conductor')
+            print('Getting IPs from conductor on IP', ip, 'port', port)
             msg = netutils.read_line(cond_socket)
             while msg:
                 ip_list.append(msg)
-                print(msg)
+                print('Received message:', msg)
                 msg = netutils.read_line(cond_socket)
         finally:
-
-            print('closing connection')
-            cond_socket.shutdown(socket.SHUT_RDWR)
-            cond_socket.close()
-
+            try:
+                print('trying to closing connection')
+                cond_socket.shutdown(socket.SHUT_RDWR)
+                cond_socket.close()
+            finally:
+                print('Connection closed')
+        print(ip_list)
         for ip in ip_list:
             if ip in self.list_of_orch_ips:
                 pass
             else:
                 self.list_of_orch_ips[ip] = 1  # IPs can have ratings in case they behave badly
+        print('list of ips is:', self.list_of_orch_ips)
         message = {'msg': 'POLL'}
         self.director_queue.put(message)
 
     def _poll_ips(self):
         for ip in self.list_of_orch_ips.keys():
-            print(ip)
+            print('poll ips trying to connect to', ip)
             if ip in self.connections_ip_dict:
                 pass
             else:
                 [ip, port] = str(ip).split(':')
-                print('Connecting', ip, port)
+                print('POLL Connecting', ip, port)
                 message = {'msg': 'CRTCON', 'ip': ip, 'port': port}
                 self.connect_queue.put(message)
 

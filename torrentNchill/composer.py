@@ -23,9 +23,11 @@ def _get_split_checksums(file_name, part_size=16 * 1024):
             part_num = 1
             bytes_read = file.read(part_size)
             while bytes_read:
+
                 hasher = hashlib.sha1()
                 hasher.update(bytes_read)
                 chunk_sums[part_num] = (hasher.hexdigest(), len(bytes_read))
+                # print('part', part_num, len(bytes_read),hasher.hexdigest())
                 bytes_read = file.read(part_size)
                 part_num += 1
         finally:
