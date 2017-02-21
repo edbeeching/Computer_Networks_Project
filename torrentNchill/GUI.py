@@ -94,7 +94,7 @@ class GUI(QMainWindow):
         file = self.orch_file_dialog()
         print(file)
 
-    #Add this later if the side panels are needed.
+    #This is needed if we later change the UI for having a side panel.
     def init_left_splitter(self):
         hbox = QHBoxLayout(self)
 
@@ -148,7 +148,6 @@ class GUI(QMainWindow):
         splitter.addWidget(top)
         splitter.addWidget(bot)
         vbox.addWidget(splitter)
-        print('hello')
         return vbox
 
 if __name__ == "__main__":
