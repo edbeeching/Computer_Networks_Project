@@ -35,21 +35,16 @@ class Connection:
         if self._ready:
             # Always waiting for something to send
             while True:
-<<<<<<< HEAD
                 print("Sending Thread...")
                 cmd = self._send_queue.get()
                 print("Command: {}", cmd['msg'])
-=======
-                #if not self._send_queue.empty():
-                cmd = self._send_queue.get()
->>>>>>> origin/master
+
                 if cmd['msg'] == 'REQUEST_PARTS_LIST':
                     msg = '{}\r\n{}\r\n{}\r\n'.format('DOWN', self._dictionary['composition_name'],
                                                       self._dictionary['full_checksum'])
                     print('Sending message: {}'.format(msg))
                 elif cmd['msg'] == 'SEND_PARTS_LIST':
                     msg = '{}\r\n{}\r\n{}\r\n{}\r\n'.format('SEND', self._dictionary['composition_name'],
-<<<<<<< HEAD
                                                             self._dictionary['full_checksum'], str(cmd['parts_list']))
                 elif cmd['msg'] == 'REQUEST_PART':
                     msg = '{}\r\n{}\r\n{}\r\n{}\r\n'.format('PART', self._dictionary['composition_name'],
@@ -62,28 +57,6 @@ class Connection:
 
                 send_buffer = bytearray()
                 send_buffer.extend(msg.encode('ascii'))
-                # for byte in data:
-=======
-                                                      self._dictionary['full_checksum'], str(cmd['parts_list']))
-                else:
-                    pass
-
-                # Build the message to be sent over socket
-                #data = ''
-                #if 'data' in cmd:
-                #    data = cmd['data']
-                #msg = '{}\r\n{}\r\n{}\r\n'.format(cmd['msg'], cmd['filename'], cmd['checksum'])
-                #if 'part' in cmd:
-                #    msg += '{}\r\n'.format(cmd['part'])
-
-                # print(msg)
-
-                send_buffer = bytearray()
-                send_buffer.extend(msg.encode('ascii'))
-                #for byte in data:
->>>>>>> origin/master
-                #    send_buffer.extend(byte)
-
                 # If there is an error in the socket (the other end disconnects, etc)
                 # shutdown the socket an inform the Member, and set self._ready to False
                 err_msg = ''
@@ -195,12 +168,13 @@ class Connection:
                         elif last_cmd == 'SEND':
                             self._member_queue.put({'msg': 'RECEIVED_PARTS_LIST',
                                                     'conn': self,
-                                                    'parts_list': word_3rd})
+                                                    'parts_list': int(word_3rd)})
                         elif last_cmd == 'NONE':
                             pass
                         elif last_cmd == 'PART':
+                            # See the type of the word_3rd
                             print('Type of the part encoded {}'.format(type(word_3rd)))
-                            self._member_queue.put({'msg': 'PART_REQUEST', 'conn': self, 'part': word_3rd})
+                            self._member_queue.put({'msg': 'PART_REQUEST', 'conn': self, 'part': int(word_3rd)})
                         elif last_cmd == 'STRT':
                             n_bytes = b""
                             # To read the binary data, we need to know how many bytes to read from the
