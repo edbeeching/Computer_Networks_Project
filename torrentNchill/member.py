@@ -10,6 +10,13 @@ import connection_handler
 import connection
 import copy
 '''
+
+    The Member class acts as a Director who organises the activities of:
+        1. A ConnectionHandler who recieves and makes connections
+        2. A FileHandler who handles reading and writing parts from disk
+        3. A Set of Connections which send and receive requests / data from other Members on the network
+
+
     The member communicates with instances of the Connection Class with the following messages:
         # DIRECTOR RECEIVES
             message = {'msg': 'RECEIVED_PART', 'conn':Connection, 'part': number, 'data': data}
@@ -25,6 +32,17 @@ import copy
             message = {'msg': 'DISCONNECT'}
             message = {'msg': 'REQUEST_PART', 'part': number}
             message = {'msg': 'REQUEST_PARTS_LIST'}
+
+
+
+
+    The Member communicates with a ConnectionHandler in order to receive and make connections
+        # DIRECTOR RECEIVES
+            message = {'msg': 'NEWCON', 'sock': clientsocket}
+
+
+        # DIRECTOR SENDS
+            message = {'msg': 'CRTCON', 'ip': ip, 'port': port}
 '''
 
 class Member(Thread):
@@ -119,9 +137,13 @@ class Member(Thread):
         parts_int = 10
         conn = message['conn']
         con_queue = self.connections_queue_dict[conn]
-
         message = {'msg': 'SEND_PARTS_LIST', 'parts_list': parts_int}
 
+<<<<<<< HEAD
+=======
+        message = {'msg': 'SEND_PARTS_LIST', 'parts_list': parts_int}
+
+>>>>>>> origin/master
         con_queue.put(message)
 
     def _handle_received_parts_list(self, message):
@@ -134,7 +156,13 @@ class Member(Thread):
         try:
             ip = str.split(self.orch_dict['conductor_ip'], ':')[0]
             port = str.split(self.orch_dict['conductor_ip'], ':')[1]
+<<<<<<< HEAD
+            print(ip, port)
+            #if ip != 'localhost':
+            #    ip = int(ip)
+=======
 
+>>>>>>> origin/master
             cond_socket.connect((ip, int(port)))
             print('Getting IPs from conductor on IP', ip, 'port', port)
             msg = netutils.read_line(cond_socket)
@@ -254,16 +282,40 @@ class Member(Thread):
                 file.close()
         return parts_dict
 
+    @staticmethod
+    def _get_parts_int(parts_dict):
+        parts_int = 1 << len(parts_dict)
+        for i in range(0, len(parts_dict)):
+            if parts_dict[i+1] is True:
+                parts_int += 1 << i
+        return parts_int
+
+    @staticmethod
+    def _get_con_parts_dict(parts_int, total_parts):
+        con_parts_dict = {}
+        for i in range(0, total_parts):
+            if parts_int & 1 << i > 0:
+                con_parts_dict[i+1] = True
+            else:
+                con_parts_dict[i+1] = False
+        return con_parts_dict
 
 
 if __name__ == "__main__":
 
-    print('number of arguments', len(sys.argv))
-    print('arguments', str(sys.argv))
+    # print('number of arguments', len(sys.argv))
+    # print('arguments', str(sys.argv))
+    #
+    # orch = 'maxresdefault.jpg.orch'
+    # member = Member(orch)
+    # member.start()
+    # print(member.parts_dict)
 
-    orch = 'maxresdefault.jpg.orch'
-    member = Member(orch)
-    member.start()
+    # member.join()
 
-    member.join()
+    test_dict = {1: True, 2: False, 3: True, 4: False, 5: True, 6: False, 7: True, 8: False, 9: True}
+    parts_int = Member._get_parts_int(test_dict)
+
+    check_dict = Member._get_con_parts_dict(parts_int, 9)
+    print(check_dict)
 
