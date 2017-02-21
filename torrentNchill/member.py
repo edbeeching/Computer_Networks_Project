@@ -137,13 +137,8 @@ class Member(Thread):
         parts_int = 10
         conn = message['conn']
         con_queue = self.connections_queue_dict[conn]
-        message = {'msg': 'SEND_PARTS_LIST', 'parts_list': parts_int}
 
-<<<<<<< HEAD
-=======
         message = {'msg': 'SEND_PARTS_LIST', 'parts_list': parts_int}
-
->>>>>>> origin/master
         con_queue.put(message)
 
     def _handle_received_parts_list(self, message):
@@ -156,13 +151,10 @@ class Member(Thread):
         try:
             ip = str.split(self.orch_dict['conductor_ip'], ':')[0]
             port = str.split(self.orch_dict['conductor_ip'], ':')[1]
-<<<<<<< HEAD
             print(ip, port)
             #if ip != 'localhost':
             #    ip = int(ip)
-=======
 
->>>>>>> origin/master
             cond_socket.connect((ip, int(port)))
             print('Getting IPs from conductor on IP', ip, 'port', port)
             msg = netutils.read_line(cond_socket)
