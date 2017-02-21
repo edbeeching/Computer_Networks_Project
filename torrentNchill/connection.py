@@ -8,7 +8,7 @@ import queue
     Class Connection, manage the Receiver and Sending threads over a socket
     and interact with the Member that created the corresponding connection
 
-    Status: Incomplete
+    Status: Incomplete, Send and Receive Threads
 """
 
 
