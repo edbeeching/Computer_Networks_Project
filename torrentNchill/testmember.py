@@ -1,6 +1,11 @@
 from threading import Thread
 import queue
+import string
 import socket
+import connection
+import argparse
+import member
+
 """
  Just for testing ideas of the interaction between a Member and its connetions
  Status: Incomplete
@@ -10,13 +15,20 @@ import socket
 
 class TestMember:
     _connections = {}
+    _dictionary = {}
 
-    def __init__(self, port):
+    def __init__(self, port, orch_filename):
         self._queue = queue.Queue()
         self._port = port
+        self._dictionary = member.Member._get_orch_parameters(orch_filename)
+        self._queue = queue.Queue()
 
     def connect(self, ip, port):
-        None
+        sock = socket.create_connection((ip, port))
+        send_queue = queue.Queue()
+        conn = connection.Connection(sock, self._dictionary, send_queue, self._queue)
+        self._connections[ip + ':' + str(port)] = conn
+        conn.start()
 
     def listen(self):
         # Bind, Listen for a connection
@@ -28,13 +40,63 @@ class TestMember:
             # Create the Connection
             # Add to the list of connections
             while True:
-                socket, address = mbr_socket.accept()
+                sock, address = mbr_socket.accept()
+                ip, port = sock.getpeername()
+
                 # Verify address and port in the dictionary
-                connection = Connection(socket, self)
-                connection.start()
-                self._connections['address'] = connection
+                send_queue = queue.Queue()
+                conn = connection.Connection(sock, self._dictionary, send_queue, self._queue)
+                conn.start()
+                self._connections[ip + ':' + str(port)] = conn
 
         Thread(target=handle_connection).start()
 
-    def put(self, element):
+    # Add a command to the processing queue
+    def add_command(self, element):
         self._queue.put(element)
+
+    # Add a command for sending
+    def add_command_to_send_queue(self, ip, port, cmd):
+        self._connections[ip + ':' + str(port)]._send_queue.put(cmd)
+
+    def get_num_of_bytes(self, filename, part):
+        return 10
+
+    def process_queue(self):
+        None
+
+    def run_forever(self):
+        r = Thread(target=self.process_queue)
+        r.start()
+
+if __name__ == "__main__":
+    # Creates a number of messages to send to the member
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--listen", help="Listen to an incomming connection",
+                        action="store_true")
+    parser.add_argument("--connect", help="Connect to another extreme",
+                        action="store_true")
+    parser.add_argument('n', nargs=1)
+    args = parser.parse_args()
+
+    orch_filename = 'maxresdefault.jpg.orch'
+
+
+    if args.listen:
+        print("Listening...")
+        M = TestMember(int(args.n[0]), orch_filename)
+        M.listen()
+
+    if args.connect:
+        print("Connecting...")
+        M = TestMember(0, orch_filename)
+        adr = args.n[0].split(':')
+        ip = adr[0]
+        port = int(adr[1])
+        M.connect(ip, port)
+        # Some commands to send to the other extreme
+        cmd = {'msg': 'DOWN', 'filename': 'maxresults.jpg', 'checksum': '2953289a34e0cc2bf776decc3f8b86622d66b705'}
+        M.add_command_to_send_queue(ip, port, cmd)
+
+
+
