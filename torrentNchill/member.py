@@ -75,6 +75,7 @@ class Member(Thread):
         # dict of parts / checksums
         # listener to find new connections from other peers
         self.orch_dict = Member._get_orch_parameters(orch_filename)
+        print(self.orch_dict)
 
         Member._write_dummy_composition(self.orch_dict.get('composition_name'),
                                         self.orch_dict.get('total_bytes'))
@@ -96,7 +97,7 @@ class Member(Thread):
         self.connect_queue = queue.Queue()
         self.con_handler = connection_handler.ConnectionHandler(self.connect_queue, self.director_queue)
         self.file_queue = queue.Queue()
-        self.f_handler = file_handler.FileHandler( self.orch_dict, self.file_queue, self.director_queue)
+        self.f_handler = file_handler.FileHandler(self.orch_dict, self.file_queue, self.director_queue)
 
         # Thread for file IO
         # dict of
@@ -161,6 +162,7 @@ class Member(Thread):
         elif message['msg'] == 'PART_REQUEST':
             # Send to filehandler message = {'msg': 'GIVE_PART', 'conn': Connection, 'part': number}
             out_message = {'msg': 'GIVE_PART', 'conn': message['conn'], 'part': message['part']}
+            self.file_queue.put(out_message)
             return True
         else:
             return False
@@ -217,7 +219,7 @@ class Member(Thread):
 
         con_parts_list = Member._get_con_parts_dict(message['parts_list'], self.orch_dict['num_parts'])
         self.connections_parts_dict[message['conn']] = con_parts_list
-        print("parts list received", message['parts_list'])
+        print("parts list received", message['parts_list'], con_parts_list)
 
         self._assign_parts_request(message['conn'])
 
@@ -276,12 +278,12 @@ class Member(Thread):
 
     def _poll_ips(self):
         for ip in self.list_of_orch_ips.keys():
-            print('poll ips trying to connect to', ip)
+            # print('poll ips trying to connect to', ip)
             if ip in self.connections_ip_dict:
                 pass
             else:
                 [ip, port] = str(ip).split(':')
-                print('POLL Connecting', ip, port)
+                # print('POLL Connecting', ip, port)
                 message = {'msg': 'CRTCON', 'ip': ip, 'port': port}
                 self.connect_queue.put(message)
 

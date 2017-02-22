@@ -53,7 +53,12 @@ class ConnectionHandler(Thread):
                 print('Trying to accept')
                 (clientsocket, addr) = server_socket.accept()
                 print('Client connected at', addr)
-
+                # Check socket send and recv addresses are not the same
+                (ip, _ ) = clientsocket.getsockname()
+                (ip2, _) = clientsocket.getpeername()
+                if ip == ip2:
+                    print('CON HANDLER trying to connect to self')
+                    continue
                 message = {'msg': 'NEWCON', 'sock': clientsocket}
 
                 out_queue.put(message)
