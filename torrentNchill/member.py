@@ -26,7 +26,7 @@ import random
             message = {'msg': 'DISCONNECTED','conn':Connection }
             message = {'msg': 'PART_REQUEST','conn':Connection,'part': number}
             message = {'msg': 'PARTS_LIST_REQUEST','conn':Connection}
-            message = {'msg': 'BAD_FILE_REQUEST',,'conn':Connection 'filename': filename, 'checksum': checksum, 'part': number}
+            message = {'msg': 'BAD_FILE_REQUEST',,'conn':Connection 'filename': filename, 'checksum': checksum, 'part': number} # Don't PEP8 me!
 
         # DIRECTOR SENDS
             message = {'msg': 'SEND_PART', 'part': number, 'data': data}
@@ -45,6 +45,20 @@ import random
 
         # DIRECTOR SENDS
             message = {'msg': 'CRTCON', 'ip': ip, 'port': port}
+
+
+    The Member communicates with a FileHandler in order to get parts for disk /  a buffer. This is abstracted
+
+        # DIRECTOR RECEIVES
+            message = {'msg': 'GOT_PART', 'conn':Connection, 'part': number, 'data': data}
+            message = {'msg': 'PART_NOT_FOUND', 'conn':Connection, 'part': number}
+
+
+        # DIRECTOR SENDS
+            message = {'msg': 'GIVE_PART', 'conn':Connection, 'part': number}
+            message = {'msg': 'WRITE_PART', 'conn':Connection, 'part': number, 'data': data}
+
+
 '''
 
 class Member(Thread):
@@ -84,7 +98,8 @@ class Member(Thread):
         # Start thread that handles connections
         self.connect_queue = queue.Queue()
         self.con_handler = connection_handler.ConnectionHandler(self.connect_queue, self.director_queue)
-
+        self.file_queue = queue.Queue()
+        #self.f_handler = file_handler.FileHandler(self.file_queue, self.director_queue, self.orch_dict)
 
         # Thread for file IO
         # dict of
@@ -99,23 +114,56 @@ class Member(Thread):
             # Respond to messages
 
             if self._handle_director_connection_msg(message):
-                print(message, ' was handled by PDC')
+                print(message, ' was handled by DIR - CONN')
             elif self._handle_director_con_handle_msg(message):
-                print(message, ' was handled by PDCH')
+                print(message, ' was handled by DIR - CONN HANDLER')
+            elif self._handle_director_file_handle_msg(message):
+                print(message, ' was handled by DIR- FILE HANDLER')
             elif message['msg'] == 'OTHER':
                 print('Message is other')
             else:
                 print('Could not read message', message)
-
+            # TODO REMOVE this sleep in the final version
             time.sleep(0.1)
 
     def _handle_director_connection_msg(self, message):
+        """
+            handles the director connection message communications
+        :param message: The message to handle
+
+
+        # DIRECTOR RECEIVES
+            message = {'msg': 'RECEIVED_PART', 'conn':Connection, 'part': number, 'data': data} # DONE
+            message = {'msg': 'RECEIVED_PARTS_LIST', 'conn':Connection, 'parts_list': parts_list} # DONE
+            message = {'msg': 'DISCONNECTED','conn':Connection }
+            message = {'msg': 'PART_REQUEST','conn':Connection,'part': number} #DONE
+            message = {'msg': 'PARTS_LIST_REQUEST','conn':Connection} # DONE
+            message = {'msg': 'BAD_FILE_REQUEST',,'conn':Connection 'filename': filename, 'checksum': checksum, 'part': number} # Don't PEP8 me!
+
+        # DIRECTOR SENDS
+            message = {'msg': 'SEND_PART', 'part': number, 'data': data}
+            message = {'msg': 'SEND_PARTS_LIST', 'parts_list': number}
+            message = {'msg': 'DISCONNECT'}
+            message = {'msg': 'REQUEST_PART', 'part': number}
+            message = {'msg': 'REQUEST_PARTS_LIST'}
+        """
+
+
 
         if message['msg'] == 'PARTS_LIST_REQUEST':
             self._handle_parts_list_request(message)
             return True
         elif message['msg'] == 'RECEIVED_PARTS_LIST':
             self._handle_received_parts_list(message)
+            return True
+        elif message['msg'] == 'RECEIVED_PART':
+            # Send to filehandler message = {'msg': 'WRITE_PART', 'conn': Connection, 'part': number, 'data': data}
+            out_message = {'msg': 'WRITE_PART', 'conn': message['conn'], 'part': message['part'], 'data':  message['data']}
+            self.file_queue.put(out_message)
+            return True
+        elif message['msg'] == 'PART_REQUEST':
+            # Send to filehandler message = {'msg': 'GIVE_PART', 'conn': Connection, 'part': number}
+            out_message = {'msg': 'GIVE_PART', 'conn': message['conn'], 'part': message['part']}
             return True
         else:
             return False
@@ -129,6 +177,31 @@ class Member(Thread):
             return True
         elif message['msg'] == 'NEWCON':
             socket = message['sock']
+            self._create_connection(socket)
+            return True
+        else:
+            return False
+
+    def _handle_director_file_handle_msg(self, message):
+        """
+        # DIRECTOR RECEIVES
+            message = {'msg': 'GOT_PART', 'conn':Connection, 'part': number, 'data': data}
+            message = {'msg': 'PART_NOT_FOUND', 'conn':Connection, 'part': number}
+
+
+        # DIRECTOR SENDS
+            message = {'msg': 'GIVE_PART', 'conn':Connection, 'part': number}
+            message = {'msg': 'WRITE_PART', 'conn':Connection, 'part': number, 'data': data}
+        """
+        if message['msg'] == 'GOT_PART':
+            con = message['conn']
+            queue = self.connections_queue_dict.get(con)
+            # message = {'msg': 'SEND_PART', 'part': number, 'data': data}
+            out_message = {'msg': 'SEND_PART', 'part': message['part'], 'data': message['data']}
+            queue.put(message)
+            return True
+        elif message['msg'] == 'PART_NOT_FOUND':
+            print(' A part has not been found!', message)
             return True
         else:
             return False
@@ -225,7 +298,7 @@ class Member(Thread):
         # Using deep copy to ensure there are no race conditions on orch dict
         con = connection.Connection(socket, copy.deepcopy(self.orch_dict), send_queue, self.director_queue)
         con.start()
-        # Set up the dictionaries
+        # Add to up the dictionaries
 
         ip, port = socket.getpeername()
         self.connections_ip_dict[con] = ip
