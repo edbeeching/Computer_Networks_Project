@@ -10,6 +10,7 @@ import connection_handler
 import connection
 import copy
 import random
+import file_handler
 
 '''
 
@@ -95,14 +96,14 @@ class Member(Thread):
         self.connect_queue = queue.Queue()
         self.con_handler = connection_handler.ConnectionHandler(self.connect_queue, self.director_queue)
         self.file_queue = queue.Queue()
-        #self.f_handler = file_handler.FileHandler(self.file_queue, self.director_queue, self.orch_dict)
+        self.f_handler = file_handler.FileHandler( self.orch_dict, self.file_queue, self.director_queue)
 
         # Thread for file IO
         # dict of
 
     def run(self):
         self.con_handler.start()
-        # file_handler.start()
+        self.f_handler.start()
         while True:
 
             # Poll queue
@@ -389,19 +390,19 @@ class Member(Thread):
 
 if __name__ == "__main__":
 
-    # print('number of arguments', len(sys.argv))
-    # print('arguments', str(sys.argv))
+    print('number of arguments', len(sys.argv))
+    print('arguments', str(sys.argv))
+
+    orch = 'maxresdefault.jpg.orch'
+    member = Member(orch)
+    member.start()
+    print(member.parts_dict)
+
+    member.join()
+
+    # test_dict = {1: True, 2: False, 3: True, 4: False, 5: True, 6: False, 7: True, 8: False, 9: True}
+    # parts_int = Member._get_parts_int(test_dict)
     #
-    # orch = 'maxresdefault.jpg.orch'
-    # member = Member(orch)
-    # member.start()
-    # print(member.parts_dict)
-
-    # member.join()
-
-    test_dict = {1: True, 2: False, 3: True, 4: False, 5: True, 6: False, 7: True, 8: False, 9: True}
-    parts_int = Member._get_parts_int(test_dict)
-
-    check_dict = Member._get_con_parts_dict(parts_int, 9)
-    print(check_dict)
+    # check_dict = Member._get_con_parts_dict(parts_int, 9)
+    # print(check_dict)
 
