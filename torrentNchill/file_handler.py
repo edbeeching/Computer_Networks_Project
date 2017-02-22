@@ -33,7 +33,7 @@ class FileHandler(Thread):
         self.in_queue = in_queue
         self.out_queue = out_queue
         #Use later to fetch from Memory rather than the Disc
-        self.buffer_size = 1024
+        #self.buffer_size = 1024
         FileHandler.read_in()
 
     def write_part(composition_name, bytes_per_part, part, data):
