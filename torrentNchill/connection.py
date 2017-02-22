@@ -49,7 +49,7 @@ class Connection:
             print("Sending Thread...")
             print("+ Waiting for something to send...")
             cmd = self._send_queue.get()
-            print("++ Sending Command: {}", cmd['msg'])
+            print("++ Sending Command: {}".format(cmd['msg']))
 
             # Request List of Parts: DOWN \r\n <FILENAME> \r\n <FULL_FILE_CHECKSUM> \r\n
             if cmd['msg'] == 'REQUEST_PARTS_LIST':
@@ -200,18 +200,8 @@ class Connection:
                 if err_msg == '':
                     # Command Interpretation:
                     if last_cmd == 'DOWN':
-                        # DOWN: Validate <FILENAME> and <FULL_FILE_CHECKSUM>
-                        # If there is an error, answer directly inserting a response in
-                        # the sender's queue notifies to the member
-                        if filename != self._dictionary['composition_name']:
-                            self._send_queue.put({'msg': 'FILE_NOT_FOUND'})
-                            self._member_queue.put({'msg': 'BAD_FILE_REQUEST'})
-                        elif checksum != self._dictionary['full_checksum']:
-                            self._send_queue.put({'msg': 'INVALID_CHECKSUM'})
-                            self._member_queue.put({'msg': 'BAD_FILE_REQUEST'})
-                        else:
-                            self._member_queue.put({'msg': 'PARTS_LIST_REQUEST',
-                                                    'conn': self})
+                        print('**** last_command: {}', last_cmd)
+                        self._handle_receive_DOWN(filename, checksum)
 
                     elif last_cmd == 'SEND':
                         self._member_queue.put({'msg': 'RECEIVED_PARTS_LIST',
@@ -308,6 +298,25 @@ class Connection:
             to_read -= len(data)
             bytes_read.extend(data)
         return bytes_read
+
+    # Protocol Management functions
+    def _handle_receive_DOWN(self, filename, checksum):
+        # DOWN: Validate <FILENAME> and <FULL_FILE_CHECKSUM>
+        # If there is an error, answer directly inserting a response in
+        # the sender's queue notifies to the member
+        if filename != self._dictionary['composition_name']:
+            self._send_queue.put({'msg': 'FILE_NOT_FOUND'})
+            self._member_queue.put({'msg': 'BAD_FILE_REQUEST'})
+        elif checksum != self._dictionary['full_checksum']:
+            self._send_queue.put({'msg': 'INVALID_CHECKSUM'})
+            self._member_queue.put({'msg': 'BAD_FILE_REQUEST'})
+        else:
+            self._member_queue.put({'msg': 'PARTS_LIST_REQUEST',
+                                    'conn': self})
+        print(str(self._member_queue))
+
+    def _handle_receive_SEND(self):
+        pass
 
     def start(self):
         rt = Thread(target=self.receive)
