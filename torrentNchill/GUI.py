@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
 """
 
 Creating a skeleton of a basic GUI.
@@ -9,9 +6,9 @@ Difficulty: using PyQt5 on Mac.
 
 To do: Add Pause, Stop, Start feature.
 
-Created on Mon Feb 6
+Created on Mon, Feb 6
 @author: Sejal
-Last updated: Tue Feb 14
+Last updated: Tue, Feb 14
 
 """
 
