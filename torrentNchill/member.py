@@ -109,7 +109,7 @@ class Member(Thread):
             # Poll queue
             message = self.director_queue.get()
             # Respond to messages
-
+            print('MEMBER: Received message:', message)
             if self._handle_director_connection_msg(message):
                 print(message, ' was handled by DIR - CONN')
             elif self._handle_director_con_handle_msg(message):
@@ -146,8 +146,8 @@ class Member(Thread):
         """
 
 
-
         if message['msg'] == 'PARTS_LIST_REQUEST':
+            print('MEMBER: PARTS LIST REQUEST')
             self._handle_parts_list_request(message)
             return True
         elif message['msg'] == 'RECEIVED_PARTS_LIST':
@@ -300,7 +300,7 @@ class Member(Thread):
         ip, port = socket.getpeername()
         self.connections_ip_dict[con] = ip
         self.ip_connections_dict[ip] = con
-        self.parts_dict[con] = 0
+        self.connections_parts_dict[con] = 0
         self.connections_queue_dict[con] = send_queue
 
 
@@ -371,7 +371,9 @@ class Member(Thread):
 
     @staticmethod
     def _get_parts_int(parts_dict):
-        parts_int = 1 << len(parts_dict)
+        print(parts_dict)
+        parts_int = 1 << len(parts_dict.keys())
+        print('MEMBER parts list length', len(parts_dict.keys()))
         for i in range(0, len(parts_dict)):
             if parts_dict[i+1] is True:
                 parts_int += 1 << i
