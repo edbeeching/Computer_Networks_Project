@@ -9,6 +9,8 @@ import netutils
 import connection_handler
 import connection
 import copy
+import random
+
 '''
 
     The Member class acts as a Director who organises the activities of:
@@ -72,6 +74,7 @@ class Member(Thread):
         self.connections_ip_dict = {}
         self.ip_connections_dict = {}
         self.connections_parts_dict = {}
+        self.active_transfers = {}
         self.connections_queue_dict = {}
         self.list_of_orch_ips = {}
         self.director_queue = queue.Queue()
@@ -132,9 +135,8 @@ class Member(Thread):
 
     def _handle_parts_list_request(self, message):
 
-        #self.parts_dict
-        # parts_int = get_part_int(self.parts_dict)
-        parts_int = 10
+        parts_int = Member._get_parts_int(self.parts_dict)
+        # parts_int = 10
         conn = message['conn']
         con_queue = self.connections_queue_dict[conn]
 
@@ -142,8 +144,31 @@ class Member(Thread):
         con_queue.put(message)
 
     def _handle_received_parts_list(self, message):
-        conn = message['conn']
+
+        con_parts_list = Member._get_con_parts_dict(message['parts_list'], self.orch_dict['num_parts'])
+        self.connections_parts_dict[message['conn']] = con_parts_list
         print("parts list received", message['parts_list'])
+
+        self._assign_parts_request(message['conn'])
+
+    def _assign_parts_request(self, conn):
+        if conn in self.active_transfers:
+            print('Note that a connection with an actve tranfer is being assigned another part, returning')
+            return
+
+        # The most Pythonic statements I've ever writen I think this is actually n*n complexity, maybe I will simplify
+        unassigned_parts = [i for i in self.parts_dict.keys() if self.parts_dict.get(i) is False]
+        parts_needed = [i for i in unassigned_parts if i not in set(self.active_transfers.keys())]
+
+        if len(parts_needed) > 0:
+            # Get a random index and that part will be assigned for this connection
+            rand_int = random.randrange(0, len(parts_needed))
+            message = {'msg': 'REQUEST_PART', 'part': parts_needed[rand_int]}
+            self.connections_queue_dict[conn].put(message)
+            self.active_transfers[conn] = parts_needed[rand_int]
+        else:
+            # There are no parts available for this connection to retrieve (perhaps send a timer here
+            print('Connection has no parts available to retrieve')
 
     def _get_ips_from_conductor(self):
         ip_list = []
