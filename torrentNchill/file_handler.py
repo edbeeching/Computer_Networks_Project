@@ -34,7 +34,6 @@ class FileHandler(Thread):
         self.out_queue = out_queue
         #Use later to fetch from Memory rather than the Disc
         #self.buffer_size = 1024
-        FileHandler.read_in()
 
     def write_part(composition_name, bytes_per_part, part, data):
             position = bytes_per_part * (part - 1)
@@ -60,7 +59,7 @@ class FileHandler(Thread):
             file.close()
         return data_part
 
-    def read_in(self):
+    def run(self):
         while True:
             print('Looking for commands in the in_queue')
             command = self.in_queue.get()
