@@ -220,7 +220,12 @@ class Connection:
                     elif last_cmd == 'NONE':
                         # Put a BAD_FILE_REQUEST into the members queue to notify that the other extreme
                         # is not sharing a file or part list
-                        self._member_queue.put({'msg': 'BAD_FILE_REQUEST', 'conn': self, 'filename':})
+                        self._member_queue.put({'msg': 'BAD_FILE_REQUEST',
+                                                'conn': self,
+                                                'filename': filename,
+                                                'checksum': checksum,
+                                                'part': int(word_3rd)
+                                                })
                         pass
                     elif last_cmd == 'PART':
                         # See the type of the word_3rd

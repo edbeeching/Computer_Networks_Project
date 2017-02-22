@@ -14,14 +14,13 @@ import member
 
 
 class TestMember:
-    _connections = {}
-    _dictionary = {}
-
     def __init__(self, port, orch_filename):
         self._queue = queue.Queue()
         self._port = port
         self._dictionary = member.Member._get_orch_parameters(orch_filename)
         self._queue = queue.Queue()
+        self._connections = {}
+        self._file_parts = {}
 
     def connect(self, ip, port):
         sock = socket.create_connection((ip, port))
@@ -51,16 +50,8 @@ class TestMember:
 
         Thread(target=handle_connection).start()
 
-    # Add a command to the processing queue
-    def add_command(self, element):
-        self._queue.put(element)
+    def read_whole_file(self):
 
-    # Add a command for sending
-    def add_command_to_send_queue(self, ip, port, cmd):
-        self._connections[ip + ':' + str(port)]._send_queue.put(cmd)
-
-    def get_num_of_bytes(self, filename, part):
-        return 10
 
     def process_queue(self):
         None
@@ -90,6 +81,8 @@ if __name__ == "__main__":
     if args.connect:
         print("Connecting...")
         M = TestMember(0, orch_filename)
+
+        # Commands to send
 
 
 
