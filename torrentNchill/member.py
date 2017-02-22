@@ -14,7 +14,7 @@ import random
 '''
 
     The Member class acts as a Director who organises the activities of:
-        1. A ConnectionHandler who recieves and makes connections
+        1. A ConnectionHandler who receives and makes connections
         2. A FileHandler who handles reading and writing parts from disk
         3. A Set of Connections which send and receive requests / data from other Members on the network
 
@@ -36,12 +36,9 @@ import random
             message = {'msg': 'REQUEST_PARTS_LIST'}
 
 
-
-
     The Member communicates with a ConnectionHandler in order to receive and make connections
         # DIRECTOR RECEIVES
             message = {'msg': 'NEWCON', 'sock': clientsocket}
-
 
         # DIRECTOR SENDS
             message = {'msg': 'CRTCON', 'ip': ip, 'port': port}
@@ -52,7 +49,6 @@ import random
         # DIRECTOR RECEIVES
             message = {'msg': 'GOT_PART', 'conn':Connection, 'part': number, 'data': data}
             message = {'msg': 'PART_NOT_FOUND', 'conn':Connection, 'part': number}
-
 
         # DIRECTOR SENDS
             message = {'msg': 'GIVE_PART', 'conn':Connection, 'part': number}
