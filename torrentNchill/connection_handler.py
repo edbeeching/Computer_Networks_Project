@@ -16,55 +16,57 @@ class ConnectionHandler(Thread):
     def run(self):
         self.listener.start()
         while True:
-            print('Looking at connection handler queue')
+            print('CON HANDLER:', 'Looking at connection handler queue')
             message = self.in_queue.get()
 
             if message['msg'] == 'CRTCON':
                 ip = message['ip']
                 port = int(message['port'])
-                print('Connection to ip:', ip, 'port', port)
+                print('CON HANDLER:', 'Connection to ip:', ip, 'port', port)
 
                 clientsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                clientsocket.settimeout(1)
                 try:
                     clientsocket.connect((ip, port))
                     message = {'msg': 'NEWCON', 'sock': clientsocket}
 
                     self.out_queue.put(message)
 
-                except:
-                    print('exception')
+                except WindowsError as er:
+                    print('CON HANDLER:', er)
 
                 finally:
-                    print("Exception connecting to", ip, port)
+                    print('CON HANDLER:', "Exception connecting to", ip, port)
 
             elif message['msg'] == 'KILL':
                 break
             else:
-                print("Message is not understood")
+                print('CON HANDLER:', "Message is not understood")
 
     def _connection_listener(self, out_queue):
-        print('Starting listener')
+        print('CON HANDLER:', 'Starting listener')
         try:
             server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             server_socket.bind(('0.0.0.0', 10001))
             server_socket.listen(5)
 
             while True:
-                print('Trying to accept')
+                print('CON HANDLER:', 'Trying to accept')
                 (clientsocket, addr) = server_socket.accept()
                 print('Client connected at', addr)
                 # Check socket send and recv addresses are not the same
-                (ip, _ ) = clientsocket.getsockname()
+                (ip, _) = clientsocket.getsockname()
                 (ip2, _) = clientsocket.getpeername()
                 if ip == ip2:
-                    print('CON HANDLER trying to connect to self')
+                    print('CON HANDLER:', 'CON HANDLER trying to connect to self')
                     continue
                 message = {'msg': 'NEWCON', 'sock': clientsocket}
 
                 out_queue.put(message)
-
+        except WindowsError as er:
+            print('CON HANDLER:', er)
         finally:
-            print("Exception in connection listener")
+            print('CON HANDLER:', "Exception in connection listener")
 
 
 
