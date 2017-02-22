@@ -57,6 +57,7 @@ class ConnectionHandler(Thread):
                 # Check socket send and recv addresses are not the same
                 (ip, _) = clientsocket.getsockname()
                 (ip2, _) = clientsocket.getpeername()
+                print('CON HANDLER:', 'ip1', ip, 'ip2', ip2)
                 if ip == ip2:
                     print('CON HANDLER:', 'CON HANDLER trying to connect to self')
                     continue
