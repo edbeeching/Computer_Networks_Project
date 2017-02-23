@@ -206,6 +206,7 @@ class Connection:
         res = b""
         was_r = False
         while True:
+            sock.setblocking(1)
             b = sock.recv(1)
             # print("Byte received in read_line: {}".format(str(b)))
             if len(b) == 0:
@@ -224,9 +225,10 @@ class Connection:
     # Read n bytes from socket
     @staticmethod
     def _read_n_bytes(sock, n_bytes, buffer_size):
+        sock.setblocking(1)
         bytes_read = bytearray()
         to_read = n_bytes
-        data = b""
+        data = bytearray()
         while to_read > 0:
             if to_read <= buffer_size:
                 data = sock.recv(to_read)
