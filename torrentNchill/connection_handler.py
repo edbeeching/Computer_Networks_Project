@@ -35,7 +35,7 @@ class ConnectionHandler(Thread):
                         print('CON HANDLER:', 'CON HANDLER trying to connect to self')
                         continue
                     message = {'msg': 'NEWCON', 'sock': clientsocket}
-
+                    clientsocket.settimeout(0)
                     self.out_queue.put(message)
 
                 except WindowsError as er:
