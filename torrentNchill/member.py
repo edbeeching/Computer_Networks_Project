@@ -164,9 +164,13 @@ class Member(Thread):
             out_message = {'msg': 'WRITE_PART', 'conn': message['conn'], 'part': message['part'], 'data':  message['data']}
 
             self.file_queue.put(out_message)
-            # TODO Checksum the recieved part to ensure it is correct
+            # TODO Checksum the recieved part to ensure it is correct and ensure the correct part in active transfers
             self.parts_dict[message['part']] = True
+            if message['conn'] in self.active_transfers:
+                self.active_transfers.pop(message['conn'])
+
             self._assign_parts_request(message['conn'])
+
             return True
 
         elif message['msg'] == 'PART_REQUEST':
