@@ -1,3 +1,6 @@
+import queue
+import time
+import hashlib
 """
 
     @author: Sejal
@@ -85,3 +88,42 @@ class FileHandler(Thread):
 
             else:
                 print("Message is not understood")
+
+
+if __name__ == "__main__":
+    print('Testing')
+    orch_dict = {'num_parts': 9, 'full_checksum': '2953289a34e0cc2bf776decc3f8b86622d66b705',
+                'total_bytes': 142044, 'parts_checksum_dict':   {
+                                                                    1: 'd53bff7979a4ac6f56da2f7085e6c2dff49656eb', 2: 'a36d78065883e2b2cf4b02f61ebbdc3b5dca7a26',
+                                                                    3: '6dc13d0429aea3e39979a0191ca0aa80b6ab55d4', 4: 'a9ff34e937e3bf554046072fa489339c3df550fc',
+                                                                    5: '0d597842e3d47c1d32c529d03f9f89054dcf3c76', 6: '2d1fc8ff5acdf2e63a694f1b99cae4a173933430',
+                                                                    7: '1d9de0a99e38435b7001f3c85020e388d73529a8', 8: '32fa02ffdbcde31deb1290a24beafcf5554f35b7',
+                                                                    9: 'c0a63314f9a0e677ecdd5bebeb5b746024deabba'
+                                                                },
+
+                'composition_name': 'files/maxresdefault.jpg', 'bytes_per_part': 16384, 'conductor_ip': '172.20.10.3:9999'}
+
+    in_queue = queue.Queue()
+    out_queue = queue.Queue()
+
+    fileHandler = FileHandler(orch_dict, in_queue, out_queue)
+    fileHandler.start()
+    # message = {'msg': 'GIVE_PART', 'conn': Connection, 'part': number}
+    # message = {'msg': 'WRITE_PART', 'conn': Connection, 'part': number, 'data': data}
+    message = {'msg': 'GIVE_PART', 'conn': None, 'part': 2}
+
+    in_queue.put(message)
+    new_message = out_queue.get()
+    print(new_message)
+
+    hasher = hashlib.sha1()
+    hasher.update(new_message['data'])
+    print(hasher.hexdigest())
+
+
+
+
+
+
+
+
