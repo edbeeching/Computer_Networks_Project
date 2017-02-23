@@ -71,7 +71,7 @@ class Connection:
             elif cmd['msg'] == 'SEND_PART':
                 msg = '{}\r\n{}\r\n{}\r\n{}\r\n{}'.format('STRT', self._dictionary['composition_name'],
                                                           self._dictionary['full_checksum'],
-                                                          str(cmd['part']), str(cmd['data']))
+                                                          str(cmd['part']), cmd['data'])
                 print('+++ Sending message through socket: {}'.format(msg))
             # File not found: NONE \r\n <FILENAME> \r\n <FULL_FILE_CHECKSUM> \r\n 0 \r\n
             elif cmd['msg'] == 'FILE_NOT_FOUND':
@@ -206,6 +206,7 @@ class Connection:
         res = b""
         was_r = False
         while True:
+            sock.setblocking(1)
             b = sock.recv(1)
             # print("Byte received in read_line: {}".format(str(b)))
             if len(b) == 0:
@@ -224,14 +225,16 @@ class Connection:
     # Read n bytes from socket
     @staticmethod
     def _read_n_bytes(sock, n_bytes, buffer_size):
+        sock.setblocking(1)
         bytes_read = bytearray()
         to_read = n_bytes
-        data = b""
+        data = bytearray()
         while to_read > 0:
             if to_read <= buffer_size:
                 data = sock.recv(to_read)
             else:
                 data = sock.recv(buffer_size)
+
             to_read -= len(data)
             bytes_read.extend(data)
         return bytes_read
