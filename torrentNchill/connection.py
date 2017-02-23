@@ -71,7 +71,7 @@ class Connection:
             elif cmd['msg'] == 'SEND_PART':
                 msg = '{}\r\n{}\r\n{}\r\n{}\r\n{}'.format('STRT', self._dictionary['composition_name'],
                                                           self._dictionary['full_checksum'],
-                                                          str(cmd['part']), str(cmd['data']))
+                                                          str(cmd['part']), cmd['data'])
                 print('+++ Sending message through socket: {}'.format(msg))
             # File not found: NONE \r\n <FILENAME> \r\n <FULL_FILE_CHECKSUM> \r\n 0 \r\n
             elif cmd['msg'] == 'FILE_NOT_FOUND':
