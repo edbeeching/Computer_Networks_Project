@@ -207,6 +207,7 @@ class Connection:
         was_r = False
         while True:
             b = sock.recv(1)
+            # print("Byte received in read_line: {}".format(str(b)))
             if len(b) == 0:
                 return None
             if b == b"\n" and was_r:
