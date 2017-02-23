@@ -38,10 +38,11 @@ class FileHandler(Thread):
         #Use later to fetch from Memory rather than the Disc
         #self.buffer_size = 1024
 
+    @staticmethod
     def write_part(composition_name, bytes_per_part, part, data):
             position = bytes_per_part * (part - 1)
             try:
-                with open(composition_name, "wb") as file:
+                with open(composition_name, "rb+") as file:
                     file.seek(position)
                     file.write(data)
             except IOError:
@@ -50,6 +51,7 @@ class FileHandler(Thread):
                 file.close()
             return
 
+    @staticmethod
     def read_part(composition_name, bytes_per_part, part):
         position = bytes_per_part * (part - 1)
         try:
@@ -119,6 +121,9 @@ if __name__ == "__main__":
     hasher = hashlib.sha1()
     hasher.update(new_message['data'])
     print(hasher.hexdigest())
+
+    data2 = bytearray(16*1024)
+    in_queue.put({'msg': 'WRITE_PART', 'conn':None, 'part': 2, 'data': data2})
 
 
 
