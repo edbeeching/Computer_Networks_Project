@@ -25,6 +25,7 @@ class ConnectionHandler(Thread):
                 print('CON HANDLER:', 'Connection to ip:', ip, 'port', port)
 
                 clientsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                # Set a short timeout to ensure we poll through the IPs quickly
                 clientsocket.settimeout(1)
                 try:
                     clientsocket.connect((ip, port))
@@ -35,7 +36,8 @@ class ConnectionHandler(Thread):
                         print('CON HANDLER:', 'CON HANDLER trying to connect to self')
                         continue
                     message = {'msg': 'NEWCON', 'sock': clientsocket}
-                    clientsocket.settimeout(0)
+                    # Set the timeout to blocking for recieving data
+                    clientsocket.settimeout(None)
                     self.out_queue.put(message)
 
                 except WindowsError as er:
