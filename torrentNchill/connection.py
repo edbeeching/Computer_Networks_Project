@@ -35,6 +35,7 @@ class Connection:
         self._ip, self._port = self._socket.getpeername()
         # Queue for sending messages through a socket
         self._send_queue = send_queue
+        self._last_cmd = ''
 
     # Read from the queue, build the message according to protocol.md
     # and send it through socket
@@ -116,43 +117,17 @@ class Connection:
     # See protocol.md
     # The protocol is text based and line terminated in \r\n
     def receive(self):
-        last_cmd = ''
+        self._last_cmd = ''
         while True:
             # If there was no error in the socket communication
             if not self._ready:
                 break
+
             print("Receiving Thread...")
             # Reading:
             # Phase 0: Read a Command Line (4 Letters followed by a \r\n)
             if not self._cmd_read:
-                err_msg = ''
-                try:
-                    last_cmd = Connection._read_line(self._socket)
-                except socket.error as se:
-                    err_msg = se.strerror
-                except:
-                    err_msg = 'Unexpected Error'
-                finally:
-                    if err_msg != '':
-                        cmd = {'msg': 'SOCKET_ERROR', 'conn': self, 'error': err_msg}
-                        # Put the error in the Member's queue
-                        self._member_queue.put(cmd)
-                        # Set _ready to False to avoid reading over a faulty socket
-                        self._ready = False
-                        # Close the socket and with self._ready = False ends the thread
-                        self._socket.close()
-
-                # 1. Interpret command, if no errors in the socket connection:
-                if err_msg == '':
-                    if last_cmd in ['DOWN', 'NONE', 'SEND', 'STRT', 'PART']:
-                        self._cmd_read = True
-                    else:
-                        # Error in the message received, raise an exception and notify to
-                        # the member to take action
-                        self._member_queue.put({'msg': 'CMD_ERROR',
-                                                'conn': self,
-                                                'error': 'Bad Command Received',
-                                                'cmd': last_cmd})
+                self._protocol_read_command()
             else:
                 # 2. Read the rest of the request
                 # Cmd = DOWN, read 2 lines
@@ -176,12 +151,12 @@ class Connection:
                 checksum = ''
                 err_msg = ''
                 try:
-                    print('* Last command received:{}, IP:PORT = {}:{}'.format(last_cmd, self._ip, str(self._port)))
+                    print('* Last command received:{}, IP:PORT = {}:{}'.format(self._last_cmd, self._ip, str(self._port)))
                     filename = Connection._read_line(self._socket)
                     checksum = Connection._read_line(self._socket)
                     word_3rd = b""
                     # In these commands, there is an additional parameter to read
-                    if last_cmd in ['NONE', 'SEND', 'PART', 'STRT']:
+                    if self._last_cmd in ['NONE', 'SEND', 'PART', 'STRT']:
                         word_3rd = Connection._read_line(self._socket)
                 except socket.error as se:
                     err_msg = se.strerror
@@ -199,68 +174,21 @@ class Connection:
 
                 if err_msg == '':
                     # Command Interpretation:
-                    if last_cmd == 'DOWN':
-                        print('**** last_command: {}', last_cmd)
+                    print('**** processing command received: {}'.format(self._last_cmd))
+                    if self._last_cmd == 'DOWN':
                         self._handle_receive_DOWN(filename, checksum)
-
-                    elif last_cmd == 'SEND':
-                        self._member_queue.put({'msg': 'RECEIVED_PARTS_LIST',
-                                                'conn': self,
-                                                'parts_list': int(word_3rd)})
-                    elif last_cmd == 'NONE':
-                        # Put a BAD_FILE_REQUEST into the members queue to notify that the other extreme
-                        # is not sharing a file or part list
-                        self._member_queue.put({'msg': 'BAD_FILE_REQUEST',
-                                                'conn': self,
-                                                'filename': filename,
-                                                'checksum': checksum,
-                                                'part': int(word_3rd)
-                                                })
-                        pass
-                    elif last_cmd == 'PART':
-                        # See the type of the word_3rd
-                        print('** Type of the part encoded {}'.format(type(word_3rd)))
-                        self._member_queue.put({'msg': 'PART_REQUEST', 'conn': self, 'part': int(word_3rd)})
-                    elif last_cmd == 'STRT':
-                        n_bytes = b""
-                        # To read the binary data, we need to know how many bytes to read from the
-                        # socket therefore, we have to query the member about the number of bytes
-                        # of a specific part
-                        part_number = int(word_3rd)
-                        num_of_parts = self._dictionary['num_parts']
-                        bytes_per_part = self._dictionary['bytes_per_part']
-                        total_bytes = self._dictionary['total_bytes']
-                        if part_number < num_of_parts:
-                            num_of_bytes = bytes_per_part
-                        else:
-                            num_of_bytes = total_bytes - num_of_parts * bytes_per_part
-
-                        err_msg = ''
-                        try:
-                            n_bytes = Connection._read_n_bytes(self._socket, num_of_bytes,
-                                                               self._recv_buffer_size)
-                        except socket.error as se:
-                            err_msg = se.strerror
-                        except:
-                            err_msg = 'Unexpected Error'
-                        finally:
-                            if err_msg != '':
-                                cmd = {'msg': 'SOCKET_ERROR', 'conn': self, 'error': err_msg}
-                                # Put the error in the Member's queue
-                                self._member_queue.put(cmd)
-                                # Set _ready to False to avoid reading over a faulty socket
-                                self._ready = False
-                                # Close the socket
-                                self._socket.close()
-
-                        if err_msg == '':
-                            # Insert Part readed in the Member's queue
-                            self._member_queue.put({'msg': 'RECEIVED_PART',
-                                                    'conn': self,
-                                                    'part': part_number,
-                                                    'data': n_bytes})
+                    elif self._last_cmd == 'SEND':
+                        self._handle_receive_SEND(word_3rd)
+                    elif self._last_cmd == 'NONE':
+                        self._handle_receive_NONE(filename, checksum, word_3rd)
+                    elif self._last_cmd == 'PART':
+                        self._handle_receive_PART(word_3rd)
+                    elif self._last_cmd == 'STRT':
+                        self._handle_receive_STRT(word_3rd)
                     else:
+                        # The command is supposed to be filtered before this section
                         pass
+
                     self._cmd_read = False
 
     # Read a line from socket
@@ -300,6 +228,43 @@ class Connection:
         return bytes_read
 
     # Protocol Management functions
+    def _protocol_read_command(self):
+        err_msg = ''
+        try:
+            # Read the first Line of any stream
+            # if the stream is well formed according to the protocol
+            # everything is going to be fine
+            self._last_cmd = Connection._read_line(self._socket)
+        except socket.error as se:
+            err_msg = se.strerror
+        except:
+            err_msg = 'Unexpected Error'
+        finally:
+            if err_msg != '':
+                cmd = {'msg': 'SOCKET_ERROR', 'conn': self, 'error': err_msg}
+                # Put the error in the Member's queue
+                self._member_queue.put(cmd)
+                # Set _ready to False to avoid reading over a faulty socket
+                self._ready = False
+                # Close the socket and with self._ready = False ends the thread
+                self._socket.close()
+
+        # 1. Interpret command, if no errors in the socket connection:
+        if err_msg == '':
+            if self._last_cmd in ['DOWN', 'NONE', 'SEND', 'STRT', 'PART']:
+                self._cmd_read = True
+            else:
+                # Error in the message received, notify to
+                # the member to take action
+                self._member_queue.put({'msg': 'CMD_ERROR',
+                                        'conn': self,
+                                        'error': 'Bad Command Received',
+                                        'cmd': self._last_cmd
+                                        })
+
+    def _protocol_read_request(self):
+        pass
+
     def _handle_receive_DOWN(self, filename, checksum):
         # DOWN: Validate <FILENAME> and <FULL_FILE_CHECKSUM>
         # If there is an error, answer directly inserting a response in
@@ -315,8 +280,69 @@ class Connection:
                                     'conn': self})
         print(str(self._member_queue))
 
-    def _handle_receive_SEND(self):
-        pass
+    def _handle_receive_SEND(self, parts):
+        self._member_queue.put({'msg': 'RECEIVED_PARTS_LIST',
+                                'conn': self,
+                                'parts_list': int(parts)})
+
+    def _handle_receive_NONE(self, filename, checksum, part_number):
+        # Put a BAD_FILE_REQUEST into the members queue to notify that the other extreme
+        # is not sharing a file or part list
+        self._member_queue.put({'msg': 'BAD_FILE_REQUEST',
+                                'conn': self,
+                                'filename': filename,
+                                'checksum': checksum,
+                                'part': int(part_number)
+                                })
+
+    def _handle_receive_PART(self, part_number):
+        # See the type of the word_3rd for debugging only
+        print('** Type of the part encoded {}'.format(type(part_number)))
+        self._member_queue.put({'msg': 'PART_REQUEST',
+                                'conn': self,
+                                'part': int(part_number)
+                                })
+
+    def _handle_receive_STRT(self, part_number):
+        n_bytes = b""
+        # To read the binary data, we need to know how many bytes to read from the
+        # socket therefore, we have to query the member about the number of bytes
+        # of a specific part
+        part_number = int(part_number)
+        num_of_parts = self._dictionary['num_parts']
+        bytes_per_part = self._dictionary['bytes_per_part']
+        total_bytes = self._dictionary['total_bytes']
+        num_of_bytes = 0
+        if part_number < num_of_parts:
+            num_of_bytes = bytes_per_part
+        else:
+            num_of_bytes = total_bytes - num_of_parts * bytes_per_part
+
+        err_msg = ''
+        try:
+            n_bytes = Connection._read_n_bytes(self._socket, num_of_bytes,
+                                               self._recv_buffer_size)
+        except socket.error as se:
+            err_msg = se.strerror
+        except:
+            err_msg = 'Unexpected Error'
+        finally:
+            if err_msg != '':
+                cmd = {'msg': 'SOCKET_ERROR', 'conn': self, 'error': err_msg}
+                # Put the error in the Member's queue
+                self._member_queue.put(cmd)
+                # Set _ready to False to avoid reading over a faulty socket
+                self._ready = False
+                # Close the socket
+                self._socket.close()
+
+        if err_msg == '':
+            # Insert Part readed in the Member's queue
+            self._member_queue.put({'msg': 'RECEIVED_PART',
+                                    'conn': self,
+                                    'part': part_number,
+                                    'data': n_bytes
+                                    })
 
     def start(self):
         rt = Thread(target=self.receive)
