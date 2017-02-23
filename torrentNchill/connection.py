@@ -234,6 +234,7 @@ class Connection:
                 data = sock.recv(to_read)
             else:
                 data = sock.recv(buffer_size)
+
             to_read -= len(data)
             bytes_read.extend(data)
         return bytes_read
