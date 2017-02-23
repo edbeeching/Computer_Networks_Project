@@ -75,7 +75,7 @@ class Member(Thread):
         # dict of parts / checksums
         # listener to find new connections from other peers
         self.orch_dict = Member._get_orch_parameters(orch_filename)
-        print(self.orch_dict)
+        print('MEMBER: Orch Dict', self.orch_dict)
 
         Member._write_dummy_composition(self.orch_dict.get('composition_name'),
                                         self.orch_dict.get('total_bytes'))
@@ -162,7 +162,11 @@ class Member(Thread):
         elif message['msg'] == 'RECEIVED_PART':
             # Send to filehandler message = {'msg': 'WRITE_PART', 'conn': Connection, 'part': number, 'data': data}
             out_message = {'msg': 'WRITE_PART', 'conn': message['conn'], 'part': message['part'], 'data':  message['data']}
+
             self.file_queue.put(out_message)
+            # TODO Checksum the recieved part to ensure it is correct
+            self.parts_dict[message['part']] = True
+            self._assign_parts_request(message['conn'])
             return True
 
         elif message['msg'] == 'PART_REQUEST':
@@ -278,7 +282,8 @@ class Member(Thread):
                 print('MEMBER: Connection closed')
 
         for ip in ip_list:
-            if ip in self.list_of_orch_ips:
+            if self.list_of_orch_ips.get(ip):
+                # We already have this in the list
                 pass
             else:
                 self.list_of_orch_ips[ip] = 1  # IPs can have ratings in case they behave badly
@@ -295,7 +300,8 @@ class Member(Thread):
             return
         for ip in self.list_of_orch_ips.keys():
             # print('poll ips trying to connect to', ip)
-            if ip in self.connections_ip_dict:
+            if self.connections_ip_dict.get(ip):
+                # We are already connected to this IP
                 pass
             else:
                 [ip, port] = str(ip).split(':')
