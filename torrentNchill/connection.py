@@ -127,7 +127,7 @@ class Connection:
             if not self._ready:
                 break
 
-            print("Receiving Thread...")
+            # print("Receiving Thread...")
             # Reading:
             # Phase 0: Read a Command Line (4 Letters followed by a \r\n)
             if not self._cmd_read:
