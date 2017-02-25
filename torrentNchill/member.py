@@ -257,6 +257,7 @@ class Member(Thread):
             self.active_transfers[conn] = parts_needed[rand_int]
         else:
             # There are no parts available for this connection to retrieve (perhaps send a timer here
+            # TODO Add a timer here
             print('MEMBER: Connection has no parts available to retrieve')
 
     def _get_ips_from_conductor(self):
@@ -273,14 +274,14 @@ class Member(Thread):
                 ip_list.append(msg)
                 print('MEMBER: Received message:', msg)
                 msg = netutils.read_line(cond_socket)
-        except WindowsError as er:
+        except socket.error as er:
             print(er)
         finally:
             try:
                 print('MEMBER: trying to closing connection')
                 cond_socket.shutdown(socket.SHUT_RDWR)
                 cond_socket.close()
-            except OSError as er:
+            except socket.error as er:
                 print(er)
             finally:
                 print('MEMBER: Connection closed')
