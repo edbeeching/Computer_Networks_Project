@@ -54,68 +54,27 @@ class Connection:
 
             # Request List of Parts: DOWN \r\n <FILENAME> \r\n <FULL_FILE_CHECKSUM> \r\n
             if cmd['msg'] == 'REQUEST_PARTS_LIST':
-                msg = '{}\r\n{}\r\n{}\r\n'.format('DOWN', self._dictionary['composition_name'],
-                                                  self._dictionary['full_checksum'])
-                print('+++ Sending message through socket: {}'.format(msg))
+                self._protocol_msg_DOWN()
             # Send List of parts: SEND \r\n <FILENAME> \r\n <FULL_FILE_CHECKSUM> \r\n <INTEGER> \r\n
             elif cmd['msg'] == 'SEND_PARTS_LIST':
-                msg = '{}\r\n{}\r\n{}\r\n{}\r\n'.format('SEND', self._dictionary['composition_name'],
-                                                        self._dictionary['full_checksum'], str(cmd['parts_list']))
-                print('+++ Sending message through socket: {}'.format(msg))
+                self._protocol_msg_SEND(str(cmd['parts_list']))
             # Request a Part: PART \r\n <FILENAME> \r\n <FULL_FILE_CHECKSUM> \r\n <INTEGER> \r\n
             elif cmd['msg'] == 'REQUEST_PART':
-                msg = '{}\r\n{}\r\n{}\r\n{}\r\n'.format('PART', self._dictionary['composition_name'],
-                                                        self._dictionary['full_checksum'], str(cmd['part']))
-                print('+++ Sending message through socket: {}'.format(msg))
+                self._protocol_msg_PART(str(cmd['part']))
             # Send the actual data of a part: STRT \r\n <FILENAME> \r\n <FULL_FILE_CHECKSUM> \r\n <INTEGER> \r\n <DATA>
             elif cmd['msg'] == 'SEND_PART':
-                msg = '{}\r\n{}\r\n{}\r\n{}\r\n{}'.format('STRT', self._dictionary['composition_name'],
-                                                          self._dictionary['full_checksum'],
-                                                          str(cmd['part']), cmd['data'])
-                print('+++ Sending message through socket: {}'.format(msg))
+                self._protocol_msg_STRT(str(cmd['part']), cmd['data'])
             # File not found: NONE \r\n <FILENAME> \r\n <FULL_FILE_CHECKSUM> \r\n 0 \r\n
             elif cmd['msg'] == 'FILE_NOT_FOUND':
-                msg = '{}\r\n{}\r\n{}\r\n{}\r\n'.format('NONE', self._dictionary['composition_name'],
-                                                        self._dictionary['full_checksum'], '0')
-                print('+++ Sending message through socket: {}'.format(msg))
+                self._protocol_msg_NONE('0')
             # Invalid Checksum: NONE \r\n <FILENAME> \r\n <FULL_FILE_CHECKSUM> \r\n 0 \r\n
             elif cmd['msg'] == 'INVALID_CHECKSUM':
-                msg = '{}\r\n{}\r\n{}\r\n{}\r\n'.format('NONE', self._dictionary['composition_name'],
-                                                        self._dictionary['full_checksum'], '0')
-                print('+++ Sending message through socket: {}'.format(msg))
+                self._protocol_msg_NONE('0')
             # Part not Found: NONE \r\n <FILENAME> \r\n <FULL_FILE_CHECKSUM> \r\n <INTEGER> \r\n
             elif cmd['msg'] == 'PART_NOT_FOUND':
-                msg = '{}\r\n{}\r\n{}\r\n{}\r\n'.format('NONE', self._dictionary['composition_name'],
-                                                        self._dictionary['full_checksum'], str(cmd['part']))
-                print('+++ Sending message through socket: {}'.format(msg))
+                self._protocol_msg_NONE(str(cmd['part']))
             else:
                 print('--- Unrecognized Command')
-
-            send_buffer = bytearray()
-            send_buffer.extend(msg.encode('ascii'))
-            # If there is an error in the socket (the other end disconnects, etc)
-            # shutdown the socket an inform the Member, and set self._ready to False
-            error = False
-            err_msg = ''
-            try:
-                print('++++ Send buffer content: {}'.format(send_buffer.decode('utf-8')))
-                self._socket.sendall(send_buffer)
-            except socket.error as socket_error_msg:
-                err_msg = socket_error_msg
-                error = True
-            except:
-                err_msg = 'Unexpected Error'
-                error = True
-            finally:
-                if error:
-                    cmd = {'msg': 'SOCKET_ERROR', 'conn': self, 'error': err_msg}
-                    # Put the error in the Member's queue
-                    print('---- Error sending through socket: {}'.format(cmd))
-                    self._member_queue.put(cmd)
-                    # Set _ready to False to avoid reading over a faulty socket
-                    self._ready = False
-                    # Close the socket
-                    self._socket.close()
 
     # Read from a socket and interpret the protocol
     # See protocol.md
@@ -203,10 +162,10 @@ class Connection:
     # Taken from the practical sessions
     @staticmethod
     def _read_line(sock):
+        sock.setblocking(1)
         res = b""
         was_r = False
         while True:
-            sock.setblocking(1)
             b = sock.recv(1)
             # print("Byte received in read_line: {}".format(str(b)))
             if len(b) == 0:
@@ -363,6 +322,102 @@ class Connection:
                                     'part': part_number,
                                     'data': n_bytes
                                     })
+
+    def _protocol_send_text(self, text_message):
+        send_buffer = bytearray()
+        send_buffer.extend(text_message.encode('ascii'))
+        # If there is an error in the socket (the other end disconnects, etc)
+        # shutdown the socket an inform the Member, and set self._ready to False
+        error = False
+        err_msg = ''
+        try:
+            print('++++ Send buffer content: {}'.format(send_buffer.decode('utf-8')))
+            self._socket.sendall(send_buffer)
+        except socket.error as socket_error_msg:
+            err_msg = socket_error_msg
+            error = True
+        except:
+            err_msg = 'Unexpected Error'
+            error = True
+        finally:
+            if error:
+                cmd = {'msg': 'SOCKET_ERROR', 'conn': self, 'error': err_msg}
+                # Put the error in the Member's queue
+                print('---- Error sending through socket: {}'.format(cmd))
+                self._member_queue.put(cmd)
+                # Set _ready to False to avoid reading over a faulty socket
+                self._ready = False
+                # Close the socket
+                self._socket.close()
+
+    def _protocol_send_bytes(self, data):
+        # data is a byte array
+        # print type to verify
+        bytes = len(data)
+        print('Type of data to send: {}, bytes: {}'.format(type(data), str(bytes)))
+        error = False
+        err_msg = ''
+        try:
+            self._socket.sendall(data)
+        except socket.error as socket_error_msg:
+            err_msg = socket_error_msg
+            error = True
+        except:
+            err_msg = 'Unexpected Error'
+            error = True
+        finally:
+            if error:
+                cmd = {'msg': 'SOCKET_ERROR', 'conn': self, 'error': err_msg}
+                # Put the error in the Member's queue
+                print('---- Error sending through socket: {}'.format(cmd))
+                self._member_queue.put(cmd)
+                # Set _ready to False to avoid reading over a faulty socket
+                self._ready = False
+                # Close the socket
+                self._socket.close()
+
+
+
+    def _protocol_msg_DOWN(self):
+        msg = '{}\r\n{}\r\n{}\r\n'.format('DOWN',
+                                          self._dictionary['composition_name'],
+                                          self._dictionary['full_checksum'])
+        print('+++ Sending message through socket: {}'.format(msg))
+        self._protocol_send_text(msg)
+
+    def _protocol_msg_SEND(self, parts_list):
+        msg = '{}\r\n{}\r\n{}\r\n{}\r\n'.format('SEND',
+                                                self._dictionary['composition_name'],
+                                                self._dictionary['full_checksum'],
+                                                parts_list)
+        print('+++ Sending message through socket: {}'.format(msg))
+        self._protocol_send_text(msg)
+
+    def _protocol_msg_PART(self, part_number):
+        msg = '{}\r\n{}\r\n{}\r\n{}\r\n'.format('PART',
+                                                self._dictionary['composition_name'],
+                                                self._dictionary['full_checksum'],
+                                                part_number)
+        print('+++ Sending message through socket: {}'.format(msg))
+        self._protocol_send_text(msg)
+
+    def _protocol_msg_NONE(self, part_number):
+        msg = '{}\r\n{}\r\n{}\r\n{}\r\n'.format('NONE',
+                                                self._dictionary['composition_name'],
+                                                self._dictionary['full_checksum'],
+                                                part_number)
+        print('+++ Sending message through socket: {}'.format(msg))
+        self._protocol_send_text(msg)
+
+    def _protocol_msg_STRT(self, part_number, data):
+        msg = '{}\r\n{}\r\n{}\r\n{}\r\n'.format('STRT', self._dictionary['composition_name'],
+                                                self._dictionary['full_checksum'],
+                                                part_number)
+        print('+++ Sending message through socket: {}'.format(msg))
+        self._protocol_send_text(msg)
+
+        print('+++ Sending binary data through socket')
+        self._protocol_send_bytes(data)
 
     def start(self):
         rt = Thread(target=self.receive)
