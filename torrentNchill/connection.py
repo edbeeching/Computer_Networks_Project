@@ -41,11 +41,7 @@ class Connection:
     # and send it through socket
     def send(self):
         # Always waiting for something to send
-        while True:
-            # If there was no error in the socket communication
-            if not self._ready:
-                break
-
+        while self._ready:
             # Wait in the queue for something to send
             print("Sending Thread...")
             print("+ Waiting for something to send...")
@@ -81,11 +77,8 @@ class Connection:
     # The protocol is text based and line terminated in \r\n
     def receive(self):
         self._last_cmd = ''
-        while True:
-            # If there was no error in the socket communication
-            if not self._ready:
-                break
-
+        # While there is no error in the socket communication
+        while self._ready:
             # print("Receiving Thread...")
             # Reading:
             # Phase 0: Read a Command Line (4 Letters followed by a \r\n)
