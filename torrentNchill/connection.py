@@ -265,7 +265,7 @@ class Connection:
 
     def _handle_receive_PART(self, part_number):
         # See the type of the word_3rd for debugging only
-        print('** Type of the part encoded {}'.format(type(part_number)))
+        # print('** Type of the part encoded {}'.format(type(part_number)))
         self._member_queue.put({'msg': 'PART_REQUEST',
                                 'conn': self,
                                 'part': int(part_number)
@@ -284,7 +284,9 @@ class Connection:
         if part_number < num_of_parts:
             num_of_bytes = bytes_per_part
         else:
-            num_of_bytes = total_bytes - num_of_parts * bytes_per_part
+            num_of_bytes = total_bytes - (num_of_parts - 1) * bytes_per_part
+
+        print("Receiving ...{} bytes".format(str(num_of_bytes)))
 
         err_msg = ''
         error = False
@@ -410,6 +412,7 @@ class Connection:
         self._protocol_send_text(msg)
 
         print('+++ Sending binary data through socket')
+        # print('Type of data: {}'.format(type(data)))
         self._protocol_send_bytes(data)
 
     def start(self):
