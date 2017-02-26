@@ -40,7 +40,7 @@ class ConnectionHandler(Thread):
                     clientsocket.settimeout(None)
                     self.out_queue.put(message)
 
-                except WindowsError as er:
+                except socket.error as er:
                     print('CON HANDLER:', er)
 
                 finally:
@@ -72,7 +72,7 @@ class ConnectionHandler(Thread):
                 message = {'msg': 'NEWCON', 'sock': clientsocket}
 
                 out_queue.put(message)
-        except WindowsError as er:
+        except socket.error as er:
             print('CON HANDLER:', er)
         finally:
             print('CON HANDLER:', "Exception in connection listener")

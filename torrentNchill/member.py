@@ -110,18 +110,22 @@ class Member(Thread):
             # Poll queue
             message = self.director_queue.get()
             # Respond to messages
-            print('MEMBER: Received message:', message)
+            print('MEMBER: Received message:', message['msg'])
             if self._handle_director_connection_msg(message):
-                print('MEMBER:', message, ' was handled by DIR - CONN')
+                pass
+                # print('MEMBER:', message, ' was handled by DIR - CONN')
 
             elif self._handle_director_con_handle_msg(message):
-                print('MEMBER:', message,  'was handled by DIR - CONN HANDLER')
+                pass
+                # print('MEMBER:', message,  'was handled by DIR - CONN HANDLER')
 
             elif self._handle_director_file_handle_msg(message):
-                print('MEMBER:', message, ' was handled by DIR- FILE HANDLER')
+                pass
+                # print('MEMBER:', message, ' was handled by DIR- FILE HANDLER')
 
             elif message['msg'] == 'OTHER':
-                print('MEMBER: Message is other')
+                pass
+                # print('MEMBER: Message is other')
 
             else:
                 print('MEMBER: Could not read message', message)
@@ -151,7 +155,7 @@ class Member(Thread):
         """
 
         if message['msg'] == 'PARTS_LIST_REQUEST':
-            print('MEMBER: PARTS LIST REQUEST')
+            # print('MEMBER: PARTS LIST REQUEST')
             self._handle_parts_list_request(message)
             return True
 
@@ -161,6 +165,12 @@ class Member(Thread):
 
         elif message['msg'] == 'RECEIVED_PART':
             # Send to filehandler message = {'msg': 'WRITE_PART', 'conn': Connection, 'part': number, 'data': data}
+            if not self._checksum_part(message):
+                print('MEMBER: Invalid part received, part number:', message['part'], 'Connection:', message['conn'])
+                self._assign_parts_request(message['conn'])
+                return
+
+            print('MEMBER: Valid part received, part number:', message['part'], 'Connection:', message['conn'])
             out_message = {'msg': 'WRITE_PART', 'conn': message['conn'], 'part': message['part'], 'data':  message['data']}
 
             self.file_queue.put(out_message)
@@ -337,6 +347,15 @@ class Member(Thread):
         self.connections_parts_dict[con] = 0
         self.connections_queue_dict[con] = send_queue
 
+    def _checksum_part(self, message):
+        hasher = hashlib.sha1()
+        hasher.update(message['data'])
+        if hasher.hexdigest() == self.orch_dict['parts_checksum_dict'][message['part']]:
+            return True
+        else:
+            return False
+
+
     @staticmethod
     def _delayed_message(q, message):
         q.put(message)
@@ -408,9 +427,9 @@ class Member(Thread):
 
     @staticmethod
     def _get_parts_int(parts_dict):
-        print(parts_dict)
+        # print(parts_dict)
         parts_int = 1 << len(parts_dict.keys())
-        print('MEMBER: parts list length', len(parts_dict.keys()))
+        # print('MEMBER: parts list length', len(parts_dict.keys()))
         for i in range(0, len(parts_dict)):
             if parts_dict[i+1] is True:
                 parts_int += 1 << i
