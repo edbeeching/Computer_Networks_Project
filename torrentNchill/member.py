@@ -6,18 +6,33 @@ import copy
 import random
 import queue
 import socket
+import logging
 from threading import Thread, Timer
 
 import connection_handler
 import connection
 import netutils
 import file_handler
-'''
 
-    The Member class acts as a Director who organises the activities of:
+'''
+    Created By Edward Beeching, last update 03/03/2017
+
+        The Member class acts as a Director who organises the activities of:
         1. A ConnectionHandler who receives and makes connections
         2. A FileHandler who handles reading and writing parts from disk
         3. A Set of Connections which send and receive requests / data from other Members on the network
+
+        # Remaining tasks
+            Improved exception handling
+            Clean exit, list for keyboard input?
+
+
+
+
+
+
+
+
 
 
     The member communicates with instances of the Connection Class with the following messages:
@@ -28,6 +43,7 @@ import file_handler
             message = {'msg': 'PART_REQUEST','conn':Connection,'part': number}
             message = {'msg': 'PARTS_LIST_REQUEST','conn':Connection}
             message = {'msg': 'BAD_FILE_REQUEST',,'conn':Connection 'filename': filename, 'checksum': checksum, 'part': number} # Don't PEP8 me!
+            message = {'msg': 'SOCKET_ERROR', 'conn': connection, 'error': err_msg}
 
         # DIRECTOR SENDS
             message = {'msg': 'SEND_PART', 'part': number, 'data': data}
@@ -61,6 +77,7 @@ import file_handler
 class Member(Thread):
 
     def __init__(self, orch_filename):
+        logging.basicConfig(format='%(asctime)s %(message)s', filename='logs/log1.log', filemode='w', level=logging.DEBUG)
         # Initialise the thread
         Thread.__init__(self)
 
@@ -75,7 +92,7 @@ class Member(Thread):
         # dict of parts / checksums
         # listener to find new connections from other peers
         self.orch_dict = Member._get_orch_parameters(orch_filename)
-        print('MEMBER: Orch Dict', self.orch_dict)
+        logging.info('MEMBER: Orch Dict %s', self.orch_dict)
 
         Member._write_dummy_composition(self.orch_dict.get('composition_name'),
                                         self.orch_dict.get('total_bytes'))
@@ -110,7 +127,7 @@ class Member(Thread):
             # Poll queue
             message = self.director_queue.get()
             # Respond to messages
-            print('MEMBER: Received message:', message['msg'])
+            #print('MEMBER: Received message:', message['msg'])
             if self._handle_director_connection_msg(message):
                 pass
                 # print('MEMBER:', message, ' was handled by DIR - CONN')
@@ -166,11 +183,11 @@ class Member(Thread):
         elif message['msg'] == 'RECEIVED_PART':
             # Send to filehandler message = {'msg': 'WRITE_PART', 'conn': Connection, 'part': number, 'data': data}
             if not self._checksum_part(message):
-                print('MEMBER: Invalid part received, part number:', message['part'], 'Connection:', message['conn'])
+                logging.warning('MEMBER: Invalid part received, part number:%s %s %s', message['part'], 'Connection:', message['conn'])
                 self._assign_parts_request(message['conn'])
                 return
 
-            print('MEMBER: Valid part received, part number:', message['part'], 'Connection:', message['conn'])
+            logging.info('MEMBER: Valid part received, part number:%s $s %s', message['part'], 'Connection:', message['conn'])
             out_message = {'msg': 'WRITE_PART', 'conn': message['conn'], 'part': message['part'], 'data':  message['data']}
 
             self.file_queue.put(out_message)
@@ -229,7 +246,7 @@ class Member(Thread):
             return True
 
         elif message['msg'] == 'PART_NOT_FOUND':
-            print('MEMBER: A part has not been found!', message)
+            logging.info('MEMBER: A part has not been found! %s', message)
             return True
 
         else:
@@ -246,13 +263,13 @@ class Member(Thread):
     def _handle_received_parts_list(self, message):
         con_parts_list = Member._get_con_parts_dict(message['parts_list'], self.orch_dict['num_parts'])
         self.connections_parts_dict[message['conn']] = con_parts_list
-        print("MEMBER: parts list received", message['parts_list'], con_parts_list)
+        logging.info("MEMBER: parts list received %s %s", message['parts_list'], con_parts_list)
 
         self._assign_parts_request(message['conn'])
 
     def _assign_parts_request(self, conn):
         if conn in self.active_transfers:
-            print('MEMBER: Note that a connection with an active transfer is being assigned another part, returning')
+            logging.info('MEMBER: Note that a connection with an active transfer is being assigned another part, returning')
             return
 
         # The most Pythonic statements I've ever writen I think this is actually n*n complexity, maybe I will simplify
@@ -268,7 +285,7 @@ class Member(Thread):
         else:
             # There are no parts available for this connection to retrieve (perhaps send a timer here
             # TODO Add a timer here
-            print('MEMBER: Connection has no parts available to retrieve')
+            logging.info('MEMBER: Connection has no parts available to retrieve')
 
     def _get_ips_from_conductor(self):
         ip_list = []
@@ -278,23 +295,23 @@ class Member(Thread):
             port = str.split(self.orch_dict['conductor_ip'], ':')[1]
 
             cond_socket.connect((ip, int(port)))
-            print('MEMBER: Getting IPs from conductor on IP', ip, 'port', port)
+            logging.info('MEMBER: Getting IPs from conductor on IP %s %s %s', ip, 'port', port)
             msg = netutils.read_line(cond_socket)
             while msg:
                 ip_list.append(msg)
-                print('MEMBER: Received message:', msg)
+                logging.info('MEMBER: Received message: %s', msg)
                 msg = netutils.read_line(cond_socket)
         except socket.error as er:
             print(er)
         finally:
             try:
-                print('MEMBER: trying to closing connection')
+                logging.info('MEMBER: trying to closing connection')
                 cond_socket.shutdown(socket.SHUT_RDWR)
                 cond_socket.close()
             except socket.error as er:
-                print(er)
+                logging.warning(er)
             finally:
-                print('MEMBER: Connection closed')
+                logging.info('MEMBER: Connection closed')
 
         for ip in ip_list:
             if self.list_of_orch_ips.get(ip):
@@ -302,7 +319,7 @@ class Member(Thread):
                 pass
             else:
                 self.list_of_orch_ips[ip] = 1  # IPs can have ratings in case they behave badly
-        print('MEMBER: list of ips is:', self.list_of_orch_ips)
+                logging.info('MEMBER: list of ips is: %s', self.list_of_orch_ips)
         message = {'msg': 'POLL'}
         self.director_queue.put(message)
 
@@ -451,7 +468,8 @@ if __name__ == "__main__":
     print('number of arguments', len(sys.argv))
     print('arguments', str(sys.argv))
 
-    orch = 'maxresdefault.jpg.orch'
+    # orch = 'maxresdefault.jpg.orch'
+    orch = 'Sciences.M1ML.complete.zip.orch'
     member = Member(orch)
     member.start()
     print(member.parts_dict)

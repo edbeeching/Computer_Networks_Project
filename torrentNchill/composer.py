@@ -103,7 +103,7 @@ def create_orchestra(input_file_name, output_file_name=None, part_size=16 * 1024
 if __name__ == "__main__":
 
     partsize = 16 * 1024  # 16KB chunk size
-    filename = "maxresdefault.jpg"
+    filename = "files/Sciences.M1ML.complete.zip"
     print(_get_file_checksum(filename))
     check_sums = _get_split_checksums(filename, partsize)
     try:
