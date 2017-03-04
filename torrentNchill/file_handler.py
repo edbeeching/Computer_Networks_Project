@@ -77,25 +77,52 @@ class FileHandler(Thread):
                 part = command['part']
                 data = command['data']
                 FileHandler.write_part(composition_name, bytes_per_part, part, data)
+                #Also add in dictionary about this new entry
+                Memory.add_part(composition_name, bytes_per_part, part, data)
 
             elif command['msg'] == 'GIVE_PART':
                 part = command['part']
                 Connection = command['conn']
 
-                #For now, fetch directly from the file rather than in buffer.
-                part_requested = FileHandler.read_part(composition_name, bytes_per_part, part)
-                message = {'msg': 'GOT_PART', 'conn': Connection, 'part': part, 'data': part_requested}
-                self.out_queue.put(message)
+                #First check in dictionary, if it exists in memory
+                #If yes, fetch from linked list
+                part_check = Memory.dict_check(composition_name, bytes_per_part, part)
+                if part_check.msg == 'True':
+                    node_no = part_check.node
+                    part_requested = Memory.read_part(node_no)
+                    message = {'msg': 'GOT_PART', 'conn': Connection, 'part': part, 'data': part_requested}
+                    self.out_queue.put(message)
+                else:
+                    #For now, fetch directly from the file rather than in buffer.
+                    part_requested = FileHandler.read_part(composition_name, bytes_per_part, part)
+                    message = {'msg': 'GOT_PART', 'conn': Connection, 'part': part, 'data': part_requested}
+                    self.out_queue.put(message)
                 #To manange incase the fetch was unsuccesful
             else:
                 print("Message is not understood")
 
-    # Idea: For the memory,implement a linked list of five/ten recently used itemset. Once the 10 items are full,
-    # simply delete the least recently link and add a new one. Then keep a dictionary
-    # which gives the name, detail of the file part, etc stored in the linked list and its link number.
-    # Whenever a part is to be checked for, then we simply need to access this dictionary and if present
-    # fetch the part from the linked list.
+# Idea: For the memory,implement a linked list of five/ten recently used itemset. Once the 10 items are full,
+#  simply delete the least recently link and add a new one. Then keep a dictionary
+# which gives the name, detail of the file part, etc stored in the linked list and its link number.
+# Whenever a part is to be checked for, then we simply need to access this dictionary and if present
+# fetch the part from the linked list.
+class Memory:
+    def __init__(self, file, next):
+        self.file = None
+        self.next = None
 
+    def dict_check(composition_name, bytes_per_part, part):
+        msg = {'msg': 'True', 'node': dict.key}
+        #get the key or the entry number for the data you are looking for
+        return msg
+
+    def add_part(composition_name, bytes_per_part, part, data):
+        #add entry in the dictionary as well as make a new node
+        return
+
+    def read_part(node_no):
+        data_part = #Apply linked list jump to node_no and fetch it's data part
+        return data_part
 
 if __name__ == "__main__":
     print('Testing')
