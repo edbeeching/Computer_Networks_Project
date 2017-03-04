@@ -87,9 +87,14 @@ class FileHandler(Thread):
                 message = {'msg': 'GOT_PART', 'conn': Connection, 'part': part, 'data': part_requested}
                 self.out_queue.put(message)
                 #To manange incase the fetch was unsuccesful
-
             else:
                 print("Message is not understood")
+
+    # Idea: For the memory,implement a linked list of five/ten recently used itemset. Once the 10 items are full,
+    # simply delete the least recently link and add a new one. Then keep a dictionary
+    # which gives the name, detail of the file part, etc stored in the linked list and its link number.
+    # Whenever a part is to be checked for, then we simply need to access this dictionary and if present
+    # fetch the part from the linked list.
 
 
 if __name__ == "__main__":
