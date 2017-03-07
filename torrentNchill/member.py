@@ -146,8 +146,8 @@ class Member(Thread):
 
             else:
                 print('MEMBER: Could not read message', message)
-            # TODO REMOVE this sleep in the final version
-            time.sleep(0.1)
+            # # TODO REMOVE this sleep in the final version
+            # time.sleep(0.1)
 
     def _handle_director_connection_msg(self, message):
         """
@@ -468,8 +468,8 @@ if __name__ == "__main__":
     print('number of arguments', len(sys.argv))
     print('arguments', str(sys.argv))
 
-    # orch = 'maxresdefault.jpg.orch'
-    orch = 'Sciences.M1ML.complete.zip.orch'
+    orch = 'maxresdefault.jpg.orch'
+    #orch = 'Sciences.M1ML.complete.zip.orch'
     member = Member(orch)
     member.start()
     print(member.parts_dict)
