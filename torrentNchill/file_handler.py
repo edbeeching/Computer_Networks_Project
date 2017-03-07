@@ -119,12 +119,6 @@ class FileHandler(Thread):
             else:
                 print("Message is not understood")
 
-# Idea: For the memory,implement a linked list of five/ten recently used itemset. Once the 10 items are full,
-# simply delete the least recently link and add a new one. Then keep a dictionary
-# which gives the name, detail of the file part, etc stored in the linked list and its link number.
-# Whenever a part is to be checked for, then we simply need to access this dictionary and if present
-# fetch the part from the linked list.
-
 if __name__ == "__main__":
     print('Testing')
     orch_dict = {'num_parts': 9, 'full_checksum': '2953289a34e0cc2bf776decc3f8b86622d66b705',
