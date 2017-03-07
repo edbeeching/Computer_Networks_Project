@@ -13,3 +13,41 @@
         # 
 
 '''
+from threading import Thread
+import progressbar
+import queue
+import time
+class Monitor(Thread):
+    def __init__(self, parts_needed, in_queue, out_queue):
+        # Initialise the thread
+        Thread.__init__(self)
+        self.in_queue = in_queue
+        self.out_queue = out_queue
+        self.parts_recieved = 0
+        self.bar = progressbar.ProgressBar(max_value=parts_needed)
+
+
+    def run(self):
+        while True:
+            message = self.in_queue.get()
+
+            if message['msg'] == 'PART':
+                self.parts_recieved += 1
+                self.bar.update(self.parts_recieved)
+
+
+
+if __name__ == '__main__':
+
+    in_queue2 = queue.Queue()
+    out_queue2 = queue.Queue()
+
+    parts = 100
+    monitor = Monitor(parts, in_queue2, out_queue2)
+    monitor.start()
+
+    for i in range(parts):
+        in_queue2.put({'msg': 'PART'})
+        time.sleep(0.1)
+
+    monitor.join()
