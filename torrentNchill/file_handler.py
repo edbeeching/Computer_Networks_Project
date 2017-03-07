@@ -35,6 +35,8 @@ class FileHandler(Thread):
         self.dictionary = dictionary
         self.in_queue = in_queue
         self.out_queue = out_queue
+        #Use later to fetch from Memory rather than the Disc
+        #self.buffer_size = 1024
 
     @staticmethod
     def write_part(composition_name, bytes_per_part, part, data):
@@ -115,7 +117,6 @@ class Memory:
         return msg
 
     def add_part(composition_name, bytes_per_part, part, data):
-        # also keep a track of number of total nodes
         #add entry in the dictionary as well as make a new node
         return
 
