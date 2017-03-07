@@ -1,7 +1,7 @@
 from threading import Thread
 import socket
 import queue
-
+import logging
 
 class ConnectionHandler(Thread):
 
@@ -16,13 +16,13 @@ class ConnectionHandler(Thread):
     def run(self):
         self.listener.start()
         while True:
-            print('CON HANDLER:', 'Looking at connection handler queue')
+            logging.info('CON HANDLER: Looking at connection handler queue')
             message = self.in_queue.get()
 
             if message['msg'] == 'CRTCON':
                 ip = message['ip']
                 port = int(message['port'])
-                print('CON HANDLER:', 'Connection to ip:', ip, 'port', port)
+                logging.info('CON HANDLER: %s %s %s %s', 'Connection to ip:', ip, 'port', port)
 
                 clientsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 # Set a short timeout to ensure we poll through the IPs quickly
@@ -31,9 +31,9 @@ class ConnectionHandler(Thread):
                     clientsocket.connect((ip, port))
                     (ip, _) = clientsocket.getsockname()
                     (ip2, _) = clientsocket.getpeername()
-                    print('CON HANDLER:', 'ip1', ip, 'ip2', ip2)
+                    logging.info('CON HANDLER: ip1 %s %s %s', ip, 'ip2', ip2)
                     if ip == ip2:
-                        print('CON HANDLER:', 'CON HANDLER trying to connect to self')
+                        logging.warning('CON HANDLER:', 'CON HANDLER trying to connect to self')
                         continue
                     message = {'msg': 'NEWCON', 'sock': clientsocket}
                     # Set the timeout to blocking for recieving data
@@ -41,41 +41,41 @@ class ConnectionHandler(Thread):
                     self.out_queue.put(message)
 
                 except socket.error as er:
-                    print('CON HANDLER:', er)
+                    logging.warning('CON HANDLER: %s', er)
 
                 finally:
-                    print('CON HANDLER:', "Exception connecting to", ip, port)
+                    logging.info('CON HANDLER: Exception connecting to %s %i', ip, port)
 
             elif message['msg'] == 'KILL':
                 break
             else:
-                print('CON HANDLER:', "Message is not understood")
+                logging.info('CON HANDLER: Message is not understood')
 
     def _connection_listener(self, out_queue):
-        print('CON HANDLER:', 'Starting listener')
+        logging.info('CON HANDLER: Starting listener')
         try:
             server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             server_socket.bind(('0.0.0.0', 10001))
             server_socket.listen(5)
 
             while True:
-                print('CON HANDLER:', 'Trying to accept')
+                logging.info('CON HANDLER: Trying to accept')
                 (clientsocket, addr) = server_socket.accept()
-                print('Client connected at', addr)
+                logging.info('Client connected at %s', addr)
                 # Check socket send and recv addresses are not the same
                 (ip, _) = clientsocket.getsockname()
                 (ip2, _) = clientsocket.getpeername()
-                print('CON HANDLER:', 'ip1', ip, 'ip2', ip2)
+                logging.info('CON HANDLER: ip1 %s %s %s', ip, 'ip2', ip2)
                 if ip == ip2:
-                    print('CON HANDLER:', 'CON HANDLER trying to connect to self')
+                    logging.info('CON HANDLER: CON HANDLER trying to connect to self')
                     continue
                 message = {'msg': 'NEWCON', 'sock': clientsocket}
 
                 out_queue.put(message)
         except socket.error as er:
-            print('CON HANDLER:', er)
+            logging.warning('CON HANDLER:', er)
         finally:
-            print('CON HANDLER:', "Exception in connection listener")
+            logging.info('CON HANDLER: Exception in connection listener')
 
 
 
