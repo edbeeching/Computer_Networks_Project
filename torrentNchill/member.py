@@ -468,8 +468,7 @@ if __name__ == "__main__":
     print('number of arguments', len(sys.argv))
     print('arguments', str(sys.argv))
 
-    # orch = 'maxresdefault.jpg.orch'
-    orch = 'Sciences.M1ML.complete.zip.orch'
+    orch = 'maxresdefault.jpg.orch'
     member = Member(orch)
     member.start()
     print(member.parts_dict)

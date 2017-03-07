@@ -2,6 +2,7 @@ from threading import Thread
 import socket
 import threading
 import queue
+import logging
 
 """
     Created by Jorge Chong 14/02/2017
@@ -18,6 +19,9 @@ class Connection:
     # socket: a reference to the socket created before the connection is instantiated
     # member: a reference to the member
     def __init__(self, sock, dictionary, send_queue, member_queue):
+        # Initialize Connection logging
+        logging.basicConfig(format='%(asctime)s %(message)s', filename='logs/connections.log', filemode='w',
+                            level=logging.DEBUG)
         # Socket object to send and receive in a connection
         self._socket = sock
         # Member dictionary referring to the file metadata (parts, checksum, etc)
@@ -43,10 +47,13 @@ class Connection:
         # Always waiting for something to send
         while self._ready:
             # Wait in the queue for something to send
-            print("CONN ST: Waiting for something to send...")
+            logging.info("CONN ST: Waiting for something to send...")
+            # print("CONN ST: Waiting for something to send...")
             cmd = self._send_queue.get()
-            print("CONN ST: Sending Command: {}".format(cmd['msg']))
-            print("CONN ST: cmd from member: {}".format(str(cmd)))
+            # print("CONN ST: Sending Command: {}".format(cmd['msg']))
+            logging.info("CONN ST: Sending Command: {}".format(cmd['msg']))
+            # print("CONN ST: cmd from member: {}".format(str(cmd)))
+            logging.info("CONN ST: cmd from member: {}".format(str(cmd)))
 
             # Request List of Parts: DOWN \r\n <FILENAME> \r\n <FULL_FILE_CHECKSUM> \r\n
             if cmd['msg'] == 'REQUEST_PARTS_LIST':
@@ -70,7 +77,8 @@ class Connection:
             elif cmd['msg'] == 'PART_NOT_FOUND':
                 self._protocol_msg_NONE(str(cmd['part']))
             else:
-                print('--- Unrecognized Command')
+                # print('--- Unrecognized Command')
+                logging.warning('--- Unrecognized Command')
 
     # Read from a socket and interpret the protocol
     # See protocol.md
@@ -108,7 +116,8 @@ class Connection:
                 err_msg = ''
                 error = False
                 try:
-                    print('CONN RT: Last command received:{}, IP:PORT = {}:{}'.format(self._last_cmd, self._ip, str(self._port)))
+                    # print('CONN RT: Last command received:{}, IP:PORT = {}:{}'.format(self._last_cmd, self._ip, str(self._port)))
+                    logging.info('CONN RT: Last command received:{}, IP:PORT = {}:{}'.format(self._last_cmd, self._ip, str(self._port)))
                     filename = Connection._read_line(self._socket)
                     checksum = Connection._read_line(self._socket)
                     word_3rd = b""
@@ -130,11 +139,13 @@ class Connection:
                         self._ready = False
                         # Close the socket
                         self._socket.close()
-                        print('CONN RT: ---- Error receiving through socket: {}'.format(cmd))
+                        # print('CONN RT: ---- Error receiving through socket: {}'.format(cmd))
+                        logging.error('CONN RT: ---- Error receiving through socket: {}'.format(cmd))
 
                 if not error:
                     # Command Interpretation:
-                    print('CONN RT: Processing command received: {}'.format(self._last_cmd))
+                    # print('CONN RT: Processing command received: {}'.format(self._last_cmd))
+                    logging.info('CONN RT: Processing command received: {}'.format(self._last_cmd))
                     if self._last_cmd == 'DOWN':
                         self._handle_receive_DOWN(filename, checksum)
                     elif self._last_cmd == 'SEND':
@@ -160,7 +171,6 @@ class Connection:
         was_r = False
         while True:
             b = sock.recv(1)
-            # print("Byte received in read_line: {}".format(str(b)))
             if len(b) == 0:
                 return None
             if b == b"\n" and was_r:
@@ -177,7 +187,8 @@ class Connection:
     # Read n bytes from socket
     @staticmethod
     def _read_n_bytes(sock, n_bytes, buffer_size):
-        print('CONN RT: Reading {} bytes: '.format(str(n_bytes)))
+        # print('CONN RT: Reading {} bytes: '.format(str(n_bytes)))
+        logging.info('CONN RT: Reading {} bytes: '.format(str(n_bytes)))
         sock.setblocking(1)
         bytes_read = bytearray()
         to_read = n_bytes
@@ -190,7 +201,8 @@ class Connection:
 
             to_read -= len(data)
             bytes_read.extend(data)
-        print('CONN RT: Total bytes read: {}'.format(str(len(bytes_read))))
+        # print('CONN RT: Total bytes read: {}'.format(str(len(bytes_read))))
+        logging.info('CONN RT: Total bytes read: {}'.format(str(len(bytes_read))))
         return bytes_read
 
     # Protocol Management functions
@@ -217,7 +229,8 @@ class Connection:
                 self._ready = False
                 # Close the socket and with self._ready = False ends the thread
                 self._socket.close()
-                print('---- Error receiving through socket: {}'.format(cmd))
+                # print('---- Error receiving through socket: {}'.format(cmd))
+                logging.error('---- Error receiving through socket: {}'.format(cmd))
 
         # 1. Interpret command, if no errors in the socket connection:
         if not error:
@@ -248,7 +261,7 @@ class Connection:
         else:
             self._member_queue.put({'msg': 'PARTS_LIST_REQUEST',
                                     'conn': self})
-        print(str(self._member_queue))
+        # print(str(self._member_queue))
 
     def _handle_receive_SEND(self, parts):
         self._member_queue.put({'msg': 'RECEIVED_PARTS_LIST',
@@ -288,7 +301,8 @@ class Connection:
         else:
             num_of_bytes = total_bytes - (num_of_parts - 1) * bytes_per_part
 
-        print("Receiving ...{} bytes".format(str(num_of_bytes)))
+        # print("CONN RT: Receiving ...{} bytes".format(str(num_of_bytes)))
+        logging.info("CONN RT: Receiving ...{} bytes".format(str(num_of_bytes)))
 
         err_msg = ''
         error = False
@@ -310,7 +324,8 @@ class Connection:
                 self._ready = False
                 # Close the socket
                 self._socket.close()
-                print('---- Error receiving through socket: {}'.format(cmd))
+                # print('---- Error receiving through socket: {}'.format(cmd))
+                logging.error('---- Error receiving through socket: {}'.format(cmd))
 
         if err_msg == '':
             # Insert Part readed in the Member's queue
@@ -328,7 +343,8 @@ class Connection:
         error = False
         err_msg = ''
         try:
-            print('CONN ST: Text Buffer content: {}'.format(send_buffer.decode('utf-8')))
+            # print('CONN ST: Text Buffer content: {}'.format(send_buffer.decode('utf-8')))
+            logging.info('CONN ST: Text Buffer content: {}'.format(send_buffer.decode('utf-8')))
             self._socket.sendall(send_buffer)
         except socket.error as socket_error_msg:
             err_msg = socket_error_msg
@@ -340,7 +356,8 @@ class Connection:
             if error:
                 cmd = {'msg': 'SOCKET_ERROR', 'conn': self, 'error': err_msg}
                 # Put the error in the Member's queue
-                print('CONN ST: ---- Error sending text through socket: {}'.format(cmd))
+                # print('CONN ST: ---- Error sending text through socket: {}'.format(cmd))
+                logging.error('CONN ST: ---- Error sending text through socket: {}'.format(cmd))
                 self._member_queue.put(cmd)
                 # Set _ready to False to avoid reading over a faulty socket
                 self._ready = False
@@ -351,7 +368,8 @@ class Connection:
         # data is a byte array
         # print type to verify
         bytes = len(data)
-        print('CONN ST: Send Bytes, type of data to send: {}, bytes: {}'.format(type(data), str(bytes)))
+        # print('CONN ST: Send Bytes, type of data to send: {}, bytes: {}'.format(type(data), str(bytes)))
+        logging.info('CONN ST: Send Bytes, type of data to send: {}, bytes: {}'.format(type(data), str(bytes)))
         error = False
         err_msg = ''
         try:
@@ -366,7 +384,8 @@ class Connection:
             if error:
                 cmd = {'msg': 'SOCKET_ERROR', 'conn': self, 'error': err_msg}
                 # Put the error in the Member's queue
-                print('CONN ST: ---- Error sending bytes through socket: {}'.format(cmd))
+                # print('CONN ST: ---- Error sending bytes through socket: {}'.format(cmd))
+                logging.error('CONN ST: ---- Error sending bytes through socket: {}'.format(cmd))
                 self._member_queue.put(cmd)
                 # Set _ready to False to avoid reading over a faulty socket
                 self._ready = False
@@ -379,7 +398,8 @@ class Connection:
         msg = '{}\r\n{}\r\n{}\r\n'.format('DOWN',
                                           self._dictionary['composition_name'],
                                           self._dictionary['full_checksum'])
-        print('CONN ST: Sending message through socket: {}'.format(msg))
+        # print('CONN ST: Sending message through socket: {}'.format(msg))
+        logging.info('CONN ST: Sending message through socket: {}'.format(msg))
         self._protocol_send_text(msg)
 
     def _protocol_msg_SEND(self, parts_list):
@@ -387,7 +407,8 @@ class Connection:
                                                 self._dictionary['composition_name'],
                                                 self._dictionary['full_checksum'],
                                                 parts_list)
-        print('CONN ST: Sending message through socket: {}'.format(msg))
+        # print('CONN ST: Sending message through socket: {}'.format(msg))
+        logging.info('CONN ST: Sending message through socket: {}'.format(msg))
         self._protocol_send_text(msg)
 
     def _protocol_msg_PART(self, part_number):
@@ -395,7 +416,8 @@ class Connection:
                                                 self._dictionary['composition_name'],
                                                 self._dictionary['full_checksum'],
                                                 part_number)
-        print('CONN ST: Sending message through socket: {}'.format(msg))
+        # print('CONN ST: Sending message through socket: {}'.format(msg))
+        logging.info('CONN ST: Sending message through socket: {}'.format(msg))
         self._protocol_send_text(msg)
 
     def _protocol_msg_NONE(self, part_number):
@@ -403,17 +425,19 @@ class Connection:
                                                 self._dictionary['composition_name'],
                                                 self._dictionary['full_checksum'],
                                                 part_number)
-        print('CONN ST: Sending message through socket: {}'.format(msg))
+        # print('CONN ST: Sending message through socket: {}'.format(msg))
+        logging.info('CONN ST: Sending message through socket: {}'.format(msg))
         self._protocol_send_text(msg)
 
     def _protocol_msg_STRT(self, part_number, data):
         msg = '{}\r\n{}\r\n{}\r\n{}\r\n'.format('STRT', self._dictionary['composition_name'],
                                                 self._dictionary['full_checksum'],
                                                 part_number)
-        print('CONN ST: Sending message through socket: {}'.format(msg))
+        # print('CONN ST: Sending message through socket: {}'.format(msg))
+        logging.info('CONN ST: Sending message through socket: {}'.format(msg))
         self._protocol_send_text(msg)
 
-        print('CONN ST: Bytes to send...')
+        # print('CONN ST: Bytes to send...')
         # print('Type of data: {}'.format(type(data)))
         self._protocol_send_bytes(data)
 
