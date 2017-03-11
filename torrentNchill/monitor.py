@@ -34,6 +34,8 @@ class Monitor(Thread):
             if message['msg'] == 'PART':
                 self.parts_recieved += 1
                 self.bar.update(self.parts_recieved)
+            if message['msg'] == 'END':
+                break
 
 
 
@@ -42,12 +44,14 @@ if __name__ == '__main__':
     in_queue2 = queue.Queue()
     out_queue2 = queue.Queue()
 
-    parts = 100
+    parts = 200
     monitor = Monitor(parts, in_queue2, out_queue2)
     monitor.start()
 
     for i in range(parts):
         in_queue2.put({'msg': 'PART'})
         time.sleep(0.1)
+
+    in_queue2.put({'msg': 'END'})
 
     monitor.join()
