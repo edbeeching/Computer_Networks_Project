@@ -5,7 +5,7 @@ import hashlib
 
     @author: Sejal
     Created on: Tue, Feb 21
-    Last updated: Tue, Feb 22
+    Last updated: Tue, Mar 7
 
     The file handler is responsible for reading/writing a file.
     This can be done either directly to/from the file or to/from the memory (buffer).
@@ -26,7 +26,7 @@ import hashlib
 """
 
 from threading import Thread
-
+import logging
 
 class FileHandler(Thread):
 
@@ -36,6 +36,13 @@ class FileHandler(Thread):
         self.in_queue = in_queue
         self.out_queue = out_queue
 
+        #Use later to fetch from Memory rather than the Disc
+        #self.buffer_size = 1024
+
+        self.memory = {}
+        self.recently_used = []
+
+
     @staticmethod
     def write_part(composition_name, bytes_per_part, part, data):
             position = bytes_per_part * (part - 1)
@@ -43,8 +50,8 @@ class FileHandler(Thread):
                 with open(composition_name, "rb+") as file:
                     file.seek(position)
                     file.write(data)
-            except IOError:
-                print('IO exception')
+            except IOError as er:
+                logging.warning('FILE HANDLER: IO exception', er)
             finally:
                 file.close()
             return
@@ -52,19 +59,21 @@ class FileHandler(Thread):
     @staticmethod
     def read_part(composition_name, bytes_per_part, part):
         position = bytes_per_part * (part - 1)
-        try:
-            with open(composition_name, 'rb') as file:
+        with open(composition_name, 'rb') as file:
+            try:
+                #with open(composition_name, 'rb') as file:
                 file.seek(position)
                 data_part = file.read(bytes_per_part)
-        except IOError:
-                print('IO exception')
-        finally:
-            file.close()
+            except IOError as er:
+                 logging.warning('FILE HANDLER: IO exception %s', er)
+            finally:
+                file.close()
         return data_part
+
 
     def run(self):
         while True:
-            print('Looking for commands in the in_queue')
+            logging.info('FILE HANDLER: Looking for commands in the in_queue')
             command = self.in_queue.get()
 
             composition_name = self.dictionary['composition_name']
@@ -75,53 +84,64 @@ class FileHandler(Thread):
                 part = command['part']
                 data = command['data']
                 FileHandler.write_part(composition_name, bytes_per_part, part, data)
-                #Also add in dictionary about this new entry
-                Memory.add_part(composition_name, bytes_per_part, part, data)
+
+                if len(self.memory) <= 6000:
+                    self.memory[part] = data
+                    self.recently_used.append(part)
+                else:
+                    oldest = self.recently_used.pop(0)  # returns the key to the oldest item
+                    del self.memory[oldest]
+                    self.memory[part] = data
+                    self.recently_used.append(part)
+
+
 
             elif command['msg'] == 'GIVE_PART':
+
                 part = command['part']
                 Connection = command['conn']
 
+                #For now, fetch directly from the file rather than in buffer.
+                part_requested = FileHandler.read_part(composition_name, bytes_per_part, part)
+                message = {'msg': 'GOT_PART', 'conn': Connection, 'part': part, 'data': part_requested}
+                self.out_queue.put(message)
+
                 #First check in dictionary, if it exists in memory
-                #If yes, fetch from linked list
-                part_check = Memory.dict_check(composition_name, bytes_per_part, part)
-                if part_check.msg == 'True':
-                    node_no = part_check.node
-                    part_requested = Memory.read_part(node_no)
+                #If yes, fetch from memory
+
+                logging.info('FILE HANDLER: Checking for part in the memory.')
+                if part in self.memory:
+                    logging.info('FILE HANDLER: Looking in the memory.')
+                    part_requested = self.memory[part]
                     message = {'msg': 'GOT_PART', 'conn': Connection, 'part': part, 'data': part_requested}
                     self.out_queue.put(message)
                 else:
-                    #For now, fetch directly from the file rather than in buffer.
                     part_requested = FileHandler.read_part(composition_name, bytes_per_part, part)
+                    if len(self.memory) <= 6000:
+                        self.memory[part] = part_requested
+                        self.recently_used.append(part)
+                    else:
+                        oldest = self.recently_used.pop(0)  # returns the key to the oldest item
+                        del self.memory[oldest]
+                        self.memory[part] = part_requested
+                        self.recently_used.append(part)
                     message = {'msg': 'GOT_PART', 'conn': Connection, 'part': part, 'data': part_requested}
                     self.out_queue.put(message)
+
                 #To manange incase the fetch was unsuccesful
+            elif command['msg'] == 'CLOSE':
+                # TODO Check this does not cause other issues
+                logging.info('FILE HANDLER: Closing')
+                return
             else:
-                print("Message is not understood")
+                logging.warning('FILE HANDLER: Message is not understood %s', message)
 
 # Idea: For the memory,implement a linked list of five/ten recently used itemset. Once the 10 items are full,
-#  simply delete the least recently link and add a new one. Then keep a dictionary
+# simply delete the least recently link and add a new one. Then keep a dictionary
 # which gives the name, detail of the file part, etc stored in the linked list and its link number.
 # Whenever a part is to be checked for, then we simply need to access this dictionary and if present
 # fetch the part from the linked list.
-class Memory:
-    def __init__(self, file, next):
-        self.file = None
-        self.next = None
 
-    def dict_check(composition_name, bytes_per_part, part):
-        msg = {'msg': 'True', 'node': dict.key}
-        #get the key or the entry number for the data you are looking for
-        return msg
-
-    def add_part(composition_name, bytes_per_part, part, data):
-        # also keep a track of number of total nodes
-        #add entry in the dictionary as well as make a new node
-        return
-
-    def read_part(node_no):
-        data_part = #Apply linked list jump to node_no and fetch it's data part
-        return data_part
 
 if __name__ == "__main__":
     print('Testing')
@@ -134,7 +154,7 @@ if __name__ == "__main__":
                                                                     9: 'c0a63314f9a0e677ecdd5bebeb5b746024deabba'
                                                                 },
 
-                'composition_name': 'files/maxresdefault.jpg', 'bytes_per_part': 16384, 'conductor_ip': '172.20.10.3:9999'}
+                'composition_name': 'maxresdefault.jpg', 'bytes_per_part': 16384, 'conductor_ip': '172.20.10.3:9999'}
 
     in_queue = queue.Queue()
     out_queue = queue.Queue()
@@ -143,23 +163,26 @@ if __name__ == "__main__":
     fileHandler.start()
     # message = {'msg': 'GIVE_PART', 'conn': Connection, 'part': number}
     # message = {'msg': 'WRITE_PART', 'conn': Connection, 'part': number, 'data': data}
-    message = {'msg': 'GIVE_PART', 'conn': None, 'part': 2}
-
+    message = {'msg': 'GIVE_PART', 'conn': None, 'part': 3}
+    #print('In queue message:',message)
     in_queue.put(message)
+
     new_message = out_queue.get()
-    print(new_message)
+    print('Out queue message:', new_message)
 
     hasher = hashlib.sha1()
     hasher.update(new_message['data'])
     print(hasher.hexdigest())
 
-    data2 = bytearray(16*1024)
-    in_queue.put({'msg': 'WRITE_PART', 'conn':None, 'part': 2, 'data': data2})
+    #data2 = bytearray(16*1024)
+    #in_queue.put({'msg': 'WRITE_PART', 'conn':None, 'part': 1, 'data': data2})
 
+    message = {'msg': 'GIVE_PART', 'conn': None, 'part': 3}
+    in_queue.put(message)
 
+    new_message_2 = out_queue.get()
+    print('Out queue message 2:', new_message_2)
 
-
-
-
+    print(fileHandler.memory)
 
 
