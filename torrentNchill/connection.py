@@ -76,6 +76,17 @@ class Connection:
             # Part not Found: NONE \r\n <FILENAME> \r\n <FULL_FILE_CHECKSUM> \r\n <INTEGER> \r\n
             elif cmd['msg'] == 'PART_NOT_FOUND':
                 self._protocol_msg_NONE(str(cmd['part']))
+            elif cmd['msg'] == 'CLOSE':
+                try:
+                    self._socket.shutdown(socket.SHUT_RDWR)
+                    self._socket.close()
+                except socket.error as er:
+                    logging.warning('Exception when closing socket %s', er)
+                    try:
+                        self._socket.close()
+                    except socket.error as er:
+                        logging.warning('Exception when closing socket %s', er)
+
             else:
                 # print('--- Unrecognized Command')
                 logging.warning('--- Unrecognized Command')

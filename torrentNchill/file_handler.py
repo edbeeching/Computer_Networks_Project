@@ -26,7 +26,7 @@ import hashlib
 """
 
 from threading import Thread
-
+import logging
 
 class FileHandler(Thread):
 
@@ -50,8 +50,8 @@ class FileHandler(Thread):
                 with open(composition_name, "rb+") as file:
                     file.seek(position)
                     file.write(data)
-            except IOError:
-                print('IO exception')
+            except IOError as er:
+                logging.warning('FILE HANDLER: IO exception', er)
             finally:
                 file.close()
             return
@@ -64,8 +64,8 @@ class FileHandler(Thread):
                 #with open(composition_name, 'rb') as file:
                 file.seek(position)
                 data_part = file.read(bytes_per_part)
-            except IOError:
-                print('IO exception')
+            except IOError as er:
+                 logging.warning('FILE HANDLER: IO exception %s', er)
             finally:
                 file.close()
         return data_part
@@ -73,7 +73,7 @@ class FileHandler(Thread):
 
     def run(self):
         while True:
-            print('Looking for commands in the in_queue')
+            logging.info('FILE HANDLER: Looking for commands in the in_queue')
             command = self.in_queue.get()
 
             composition_name = self.dictionary['composition_name']
@@ -109,9 +109,9 @@ class FileHandler(Thread):
                 #First check in dictionary, if it exists in memory
                 #If yes, fetch from memory
 
-                print('Checking for part in the memory.')
+                logging.info('FILE HANDLER: Checking for part in the memory.')
                 if part in self.memory:
-                    print('Looking in the memory.')
+                    logging.info('FILE HANDLER: Looking in the memory.')
                     part_requested = self.memory[part]
                     message = {'msg': 'GOT_PART', 'conn': Connection, 'part': part, 'data': part_requested}
                     self.out_queue.put(message)
@@ -129,9 +129,12 @@ class FileHandler(Thread):
                     self.out_queue.put(message)
 
                 #To manange incase the fetch was unsuccesful
-
+            elif command['msg'] == 'CLOSE':
+                # TODO Check this does not cause other issues
+                logging.info('FILE HANDLER: Closing')
+                return
             else:
-                print("Message is not understood")
+                logging.warning('FILE HANDLER: Message is not understood %s', message)
 
 # Idea: For the memory,implement a linked list of five/ten recently used itemset. Once the 10 items are full,
 # simply delete the least recently link and add a new one. Then keep a dictionary

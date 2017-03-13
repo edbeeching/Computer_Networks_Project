@@ -12,6 +12,7 @@ class ConnectionHandler(Thread):
         self.in_queue = in_queue
         self.out_queue = out_queue
         self.orch_dict = orch_dict
+        self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         self.listener = Thread(target=self._connection_listener, args=(self.out_queue,))
 
@@ -146,9 +147,18 @@ class ConnectionHandler(Thread):
 
                 message = {'msg': 'COND_IPS', 'ip_list': ip_list}
                 self.out_queue.put(message)
-                break
 
-            elif message['msg'] == 'KILL':
+            elif message['msg'] == 'CLOSE':
+                try:
+                    self.server_socket.shutdown(socket.SHUT_RDWR)
+                    self.server_socket.close()
+                except socket.error as er:
+                    logging.warning('CON HANDLER: Exception shutting down server socket %s', er)
+                    try:
+                        self.server_socket.close()
+                    except socket as er:
+                        logging.warning('CON HANDLER: Exception closing down server socket %s', er)
+
                 break
             else:
                 logging.info('CON HANDLER: Message is not understood')
@@ -156,13 +166,13 @@ class ConnectionHandler(Thread):
     def _connection_listener(self, out_queue):
         logging.info('CON HANDLER: Starting listener')
         try:
-            server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            server_socket.bind(('0.0.0.0', 10001))
-            server_socket.listen(5)
+            #server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.server_socket.bind(('0.0.0.0', 10001))
+            self.server_socket.listen(5)
 
             while True:
                 logging.info('CON HANDLER: Trying to accept')
-                (clientsocket, addr) = server_socket.accept()
+                (clientsocket, addr) = self.server_socket.accept()
                 logging.info('Client connected at %s', addr)
                 # Check socket send and recv addresses are not the same
                 (ip, _) = clientsocket.getsockname()
@@ -175,7 +185,7 @@ class ConnectionHandler(Thread):
 
                 out_queue.put(message)
         except socket.error as er:
-            logging.warning('CON HANDLER:', er)
+            logging.warning('CON HANDLER:%s', er)
         finally:
             logging.info('CON HANDLER: Exception in connection listener')
 

@@ -13,6 +13,7 @@ import connection_handler
 import connection
 import netutils
 import file_handler
+import monitor
 
 '''
     Created By Edward Beeching, last update 03/03/2017
@@ -108,15 +109,21 @@ class Member(Thread):
         # Start thread that handles connections
         self.connect_queue = queue.Queue()
         self.con_handler = connection_handler.ConnectionHandler(self.connect_queue, self.director_queue, self.orch_dict)
+        # Starts a thread that handles reading & writing parts to disk
         self.file_queue = queue.Queue()
         self.f_handler = file_handler.FileHandler(self.orch_dict, self.file_queue, self.director_queue)
+        # Starts a thread that handles monitoring progress for output in terminal
+        # First count to see if we have any parts already
+        has_parts = len([i for i in self.parts_dict.values() if i is True])
 
-        # Thread for file IO
-        # dict of
+        self.monitor_queue = queue.Queue()
+        self.mon = monitor.Monitor(has_parts, self.orch_dict['num_parts'], self.monitor_queue, self.director_queue)
+
 
     def run(self):
         self.con_handler.start()
         self.f_handler.start()
+        self.mon.start()
         while True:
 
             # Poll queue
@@ -134,13 +141,19 @@ class Member(Thread):
             elif self._handle_director_file_handle_msg(message):
                 pass
                 # print('MEMBER:', message, ' was handled by DIR- FILE HANDLER')
-
+            elif message['msg'] == 'CLOSE':
+                print('Trying to exit gracefully')
+                logging.info('MEMBER: Trying to exit gracefully')
+                self._clean_exit() # Try and exit gracefully
+                logging.info('MEMBER: Returning')
+                return
+                # break
             elif message['msg'] == 'OTHER':
                 pass
                 # print('MEMBER: Message is other')
 
             else:
-                print('MEMBER: Could not read message', message)
+                logging.warning('MEMBER: Could not read message', message)
                 # # TODO REMOVE this sleep in the final version
                 # time.sleep(0.1)
 
@@ -187,7 +200,8 @@ class Member(Thread):
                          message['conn'])
             out_message = {'msg': 'WRITE_PART', 'conn': message['conn'], 'part': message['part'],
                            'data': message['data']}
-
+            tot_parts = len([i for i in self.parts_dict.values() if i is True])
+            self.monitor_queue.put({'msg': 'PARTS', 'parts': tot_parts})
             self.file_queue.put(out_message)
             self.parts_dict[message['part']] = True
             if message['conn'] in self.active_transfers:
@@ -282,6 +296,26 @@ class Member(Thread):
         if conn in self.active_transfers:
             del self.active_transfers[conn]
 
+    def _clean_exit(self):
+        # Try and make a clean exit by passing all handlers the CLOSE message
+        self.connect_queue.put({'msg': 'CLOSE'})
+        self.file_queue.put({'msg': 'CLOSE'})
+        for q in self.connections_queue_dict.values():
+            q.put({'msg': 'CLOSE'})
+        # Give them half a second to close gracefully
+        time.sleep(0.5)
+        logging.info('MEMBER: Joining ConnectionHandler')
+        self.con_handler.join()
+        logging.info('MEMBER: Joining FileHandler')
+        self.f_handler.join()
+        # for con in self.connections_queue_dict.keys():
+        #     logging.info('MEMBER: Joining Connections')
+        #     con.join()
+        logging.info('MEMBER: Joining Monitor')
+        self.mon.join()
+        logging.info('MEMBER: All threads joined, exiting')
+
+
     def _handle_parts_list_request(self, message):
         parts_int = Member._get_parts_int(self.parts_dict)
 
@@ -369,7 +403,7 @@ class Member(Thread):
 
         send_queue.put(message)
         # Using deep copy to ensure there are no race conditions on orch dict
-        con = connection.Connection(socket, copy.deepcopy(self.orch_dict), send_queue, self.director_queue)
+        con = connection.Connection(sock, copy.deepcopy(self.orch_dict), send_queue, self.director_queue)
         con.start()
         # Add to up the dictionaries
 
@@ -485,13 +519,14 @@ if __name__ == "__main__":
         member = Member(sys.argv[1])
     else:
         # orch = 'maxresdefault.jpg.orch'
-        orch = 'ATJ.jpg.orch'
-        # orch = 'Sciences.M1ML.complete.zip.orch'
+        #orch = 'ATJ.jpg.orch'
+        orch = 'Sciences.M1ML.complete.zip.orch'
         member = Member(orch)
 
     member.start()
     member.join()
-
+    print('Member joined')
+    sys.exit()
     # test_dict = {1: True, 2: False, 3: True, 4: False, 5: True, 6: False, 7: True, 8: False, 9: True}
     # parts_int = Member._get_parts_int(test_dict)
     #
