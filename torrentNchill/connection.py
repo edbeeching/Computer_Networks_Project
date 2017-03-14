@@ -164,7 +164,8 @@ class Connection:
                         # print('CONN RT: ---- Error receiving through socket: {}'.format(cmd))
                         logging.warning('CONN RT: ---- Error receiving through socket: {}'.format(cmd))
                         # Terminates the thread
-                        success = False
+                        # success = False
+                        return
 
                 if not error:
                     # Command Interpretation:
