@@ -1,5 +1,7 @@
 import socket
 import threading
+import netutils
+#import pprint
 
 """
 Created by Arslen REMACI
@@ -10,34 +12,49 @@ IPs saved in a file named "IPs.txt" (may change later)
 
 """
 
+# dict{(filename,checksum),[IP:Port,IP:Port,...]}
 
-class MemberThread(threading.Thread):
-    def __init__(self, ip, port, membersocket):
-        threading.Thread.__init__(self)
-        self.ip = ip
-        self.port = port
-        self.membersocket = membersocket
-        print("+++ New thread for %s on %s" % (self.ip, self.port,))
+def handler(s, ip):
+    command = netutils.read_line(s)
+    filename = netutils.read_line(s)
+    checksum = netutils.read_line(s)
+    port = netutils.read_line(s)
 
-    def run(self):
-        print("%s %s is connecting" % (self.ip, self.port,))
+    namecheck = "(" + filename + "," + checksum + ")"
+    listips = ""
 
-        print("=== Sending IPs ===")
-        fp = open("data/IPs.txt", 'rb')
-        self.membersocket.sendall(fp.read())
+    if(command == "DOWN"):
+        if namecheck in dictionary:
+            for i in dictionary[namecheck]:
+                listips = listips + i + '\r\n'
 
-        print("=== Finished sending, member disconnected ===")
-        self.membersocket.shutdown(socket.SHUT_RDWR)
-        self.membersocket.close()
+            s.sendall(bytes('SEND\r\n' + filename + '\r\n' + checksum + '\r\n' + str(len(dictionary[namecheck])) + '\r\n' + listips, encoding="ascii"))
 
+            if (ip+":"+port) not in dictionary[namecheck]:
+                dictionary[namecheck].append(ip+":"+port)
+        else:
+            s.sendall(bytes('NONE\r\n' + filename + '\r\n' + checksum + '\r\n', encoding="ascii"))
+            dictionary[namecheck] = [ip+":"+port]
 
-tcpsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-tcpsock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-tcpsock.bind(('0.0.0.0', 9999))
+    #else if(command == "UPLD")
+
+    #pp = pprint.PrettyPrinter()
+    #pp.pprint(dictionary)
+
+    print("=== Finished sending, member disconnected ===")
+    s.close()
+
+tcpsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+tcpsocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+tcpsocket.bind(('', 9999))
+tcpsocket.listen(5)
+
+dictionary = {}
 
 while True:
-    tcpsock.listen(10)
-    print("Listening")
-    (membersocket, (ip, port)) = tcpsock.accept()
-    newthread = MemberThread(ip, port, membersocket)
-    newthread.start()
+    s, (ip, port) = tcpsocket.accept()
+    print("+++ New thread for %s on %s +++" % (ip, port,))
+
+    threading.Thread(target = handler, args = (s, ip,)).start()
