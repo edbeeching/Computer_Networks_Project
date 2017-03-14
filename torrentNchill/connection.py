@@ -80,6 +80,7 @@ class Connection:
             elif cmd['msg'] == 'PART_NOT_FOUND':
                 success = self._protocol_msg_NONE(str(cmd['part']))
             elif cmd['msg'] == 'CLOSE':
+                success = False
                 try:
                     self._socket.shutdown(socket.SHUT_RDWR)
                     self._socket.close()
@@ -89,8 +90,6 @@ class Connection:
                         self._socket.close()
                     except socket.error as er:
                         logging.warning('Exception when closing socket %s', er)
-
-                success = False
             else:
                 # print('--- Unrecognized Command')
                 logging.warning('--- Unrecognized Command')
