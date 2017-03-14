@@ -158,8 +158,7 @@ class ConnectionHandler(Thread):
                         self.server_socket.close()
                     except socket as er:
                         logging.warning('CON HANDLER: Exception closing down server socket %s', er)
-
-                break
+                return
             else:
                 logging.info('CON HANDLER: Message is not understood')
 
@@ -188,6 +187,7 @@ class ConnectionHandler(Thread):
             logging.warning('CON HANDLER:%s', er)
         finally:
             logging.info('CON HANDLER: Exception in connection listener')
+            return
 
 
 
