@@ -10,8 +10,6 @@ import hashlib
     The file handler is responsible for reading/writing a file.
     This can be done either directly to/from the file or to/from the memory (buffer).
 
-    TO DO: Implement buffer fetch.
-
     Messages received from member:
 
     # DIRECTOR RECEIVES
@@ -35,9 +33,6 @@ class FileHandler(Thread):
         self.dictionary = dictionary
         self.in_queue = in_queue
         self.out_queue = out_queue
-
-        #Use later to fetch from Memory rather than the Disc
-        #self.buffer_size = 1024
 
         self.memory = {}
         self.recently_used = []
