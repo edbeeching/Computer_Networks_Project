@@ -55,6 +55,7 @@ dictionary = {}
 
 while True:
     s, (ip, port) = tcpsocket.accept()
+    print(dictionary)
     print("+++ New thread for %s on %s +++" % (ip, port,))
 
     threading.Thread(target = handler, args = (s, ip,)).start()

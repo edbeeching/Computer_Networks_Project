@@ -265,8 +265,8 @@ class Member(Thread):
         """
         if message['msg'] == 'GOT_PART':
             conn = message['conn']
-            # if conn not in self.connections_queue_dict[conn]:
-            #     return
+            if conn not in self.connections_queue_dict:
+                return
             con_queue = self.connections_queue_dict[conn]
             # message = {'msg': 'SEND_PART', 'part': number, 'data': data}
             out_message = {'msg': 'SEND_PART', 'part': message['part'], 'data': message['data']}

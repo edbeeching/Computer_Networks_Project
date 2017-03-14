@@ -50,7 +50,7 @@ class ConnectionHandler(Thread):
                     logging.info('CON HANDLER: Exception connecting to %s %i', ip, port)
             elif message['msg'] == 'COND_IPS':
                 ip_list = []
-                if False:
+                if True:
                     cond_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                     try:
                         ip = str.split(self.orch_dict['conductor_ip'], ':')[0]
@@ -68,13 +68,13 @@ class ConnectionHandler(Thread):
                         if reply_msg == 'NONE':
                             filename = netutils.read_line(cond_socket)
                             checksum = netutils.read_line(cond_socket)
-                            if filename != self.orch_dict['filename']:
-                                print('Error in filename')
+                            if filename != self.orch_dict['composition_name']:
+                                logging.info('CON HANDLER: Error in filename')
                                 cond_socket.shutdown(socket.SHUT_RDWR)
                                 cond_socket.close()
                                 return
-                            if checksum != self.orch_dict['checksum']:
-                                print('Error in checksum name')
+                            if checksum != self.orch_dict['full_checksum']:
+                                logging.info('CON HANDLER: Error in checksum name')
                                 cond_socket.shutdown(socket.SHUT_RDWR)
                                 cond_socket.close()
                                 return
@@ -82,43 +82,42 @@ class ConnectionHandler(Thread):
                             filename = netutils.read_line(cond_socket)
                             checksum = netutils.read_line(cond_socket)
                             num_ips = netutils.read_line(cond_socket)
-                            if filename != self.orch_dict['filename']:
-                                print('Error in filename')
+                            if filename != self.orch_dict['composition_name']:
+                                logging.info('CON HANDLER: Error in filename')
                                 cond_socket.shutdown(socket.SHUT_RDWR)
                                 cond_socket.close()
                                 return
-                            if checksum != self.orch_dict['checksum']:
-                                print('Error in checksum name')
+                            if checksum != self.orch_dict['full_checksum']:
+                                logging.info('CON HANDLER: Error in checksum name')
                                 cond_socket.shutdown(socket.SHUT_RDWR)
                                 cond_socket.close()
                                 return
                             if int(num_ips) < 0 or int(
                                     num_ips) > 1000000:  # I very much doubt we will have more than 1 million
-                                print('Error in num_ips')
+                                logging.info('CON HANDLER: Error in num_ips')
                                 cond_socket.shutdown(socket.SHUT_RDWR)
                                 cond_socket.close()
                                 return
 
-                            for i in range(num_ips):
+                            for i in range(int(num_ips)):
                                 ip_port = netutils.read_line(cond_socket)
                                 ip_list.append(ip_port)
-                                logging.info('MEMBER: Received ip: %s', ip_port)
+                                logging.info('CON HANDLER: Received ip: %s', ip_port)
 
-                            print('MEMBER: The conductor is not sharing this file')
                         else:
-                            print('Error in getting IPs from conductor')
+                            logging.info('Error in getting IPs from conductor')
 
                     except socket.error as er:
-                        print(er)
+                        logging.warning('CON HANDLER: Exception %s', er)
                     finally:
                         try:
-                            logging.info('MEMBER: trying to closing connection')
+                            logging.info('CON HANDLER: trying to closing connection')
                             cond_socket.shutdown(socket.SHUT_RDWR)
                             cond_socket.close()
                         except socket.error as er:
                             logging.warning(er)
                         finally:
-                            logging.info('MEMBER: Connection closed')
+                            logging.info('CON HANDLER: Connection closed')
                 else:
                     cond_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                     try:
@@ -126,23 +125,23 @@ class ConnectionHandler(Thread):
                         port = str.split(self.orch_dict['conductor_ip'], ':')[1]
 
                         cond_socket.connect((ip, int(port)))
-                        logging.info('MEMBER: Getting IPs from conductor on IP %s %s %s', ip, 'port', port)
+                        logging.info('CON HANDLER: Getting IPs from conductor on IP %s %s %s', ip, 'port', port)
                         msg = netutils.read_line(cond_socket)
                         while msg:
                             ip_list.append(msg)
-                            logging.info('MEMBER: Received message: %s', msg)
+                            logging.info('CON HANDLER: Received message: %s', msg)
                             msg = netutils.read_line(cond_socket)
                     except socket.error as er:
                         print(er)
                     finally:
                         try:
-                            logging.info('MEMBER: trying to closing connection')
+                            logging.info('CON HANDLER: trying to closing connection')
                             cond_socket.shutdown(socket.SHUT_RDWR)
                             cond_socket.close()
                         except socket.error as er:
                             logging.warning(er)
                         finally:
-                            logging.info('MEMBER: Connection closed')
+                            logging.info('CON HANDLER: Connection closed')
 
 
                 message = {'msg': 'COND_IPS', 'ip_list': ip_list}
