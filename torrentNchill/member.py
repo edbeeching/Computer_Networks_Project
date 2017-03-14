@@ -97,7 +97,7 @@ class Member(Thread):
                                                  self.orch_dict.get('bytes_per_part'),
                                                  self.orch_dict.get('parts_checksum_dict'))
         self.connections_ip_dict = {}
-        self.ip_connections_dict = {}
+        # self.ip_connections_dict = {}
         self.connections_parts_dict = {}
         self.active_transfers = {}
         self.connections_queue_dict = {}
@@ -285,10 +285,10 @@ class Member(Thread):
         # Removes entries of conn for all the connection dicts
         logging.info('MEMBER: Connection closing %s', conn)
         if conn in self.connections_ip_dict:
-            ip = self.connections_ip_dict[conn]
+            # ip = self.connections_ip_dict
             del self.connections_ip_dict[conn]
-            if ip in self.ip_connections_dict[ip]:
-                del self.ip_connections_dict[ip]
+            # if ip in self.ip_connections_dict:
+            #     del self.ip_connections_dict[ip]
         if conn in self.connections_parts_dict:
             del self.connections_parts_dict[conn]
         if conn in self.connections_queue_dict:
@@ -409,7 +409,7 @@ class Member(Thread):
 
         ip, port = sock.getpeername()
         self.connections_ip_dict[con] = ip
-        self.ip_connections_dict[ip] = con
+        # self.ip_connections_dict[ip] = con
         self.connections_parts_dict[con] = 0
         self.connections_queue_dict[con] = send_queue
 

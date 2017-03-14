@@ -36,7 +36,7 @@ class ConnectionHandler(Thread):
                     (ip2, _) = clientsocket.getpeername()
                     logging.info('CON HANDLER: ip1 %s %s %s', ip, 'ip2', ip2)
                     if ip == ip2:
-                        logging.warning('CON HANDLER:', 'CON HANDLER trying to connect to self')
+                        logging.warning('CON HANDLER: CON HANDLER trying to connect to self')
                         continue
                     message = {'msg': 'NEWCON', 'sock': clientsocket}
                     # Set the timeout to blocking for recieving data
@@ -158,8 +158,7 @@ class ConnectionHandler(Thread):
                         self.server_socket.close()
                     except socket as er:
                         logging.warning('CON HANDLER: Exception closing down server socket %s', er)
-
-                break
+                return
             else:
                 logging.info('CON HANDLER: Message is not understood')
 
@@ -188,6 +187,7 @@ class ConnectionHandler(Thread):
             logging.warning('CON HANDLER:%s', er)
         finally:
             logging.info('CON HANDLER: Exception in connection listener')
+            return
 
 
 
