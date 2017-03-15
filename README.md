@@ -49,20 +49,20 @@ composer.py filename conductor_ip_port
 composer.py filename conductor_ip_port part_size
 
 If the ip and port are note know, the file line of the text file generated can be updated at a later stage.
-![Alt text](torrentNchill/screenshots/instructions_composer.pngg?raw=true "The Game UI")
+![Alt text](torrentNchill/screenshots/instructions_composer.png?raw=true "Using the Composer")
 ### Using the Conductor
 
-The conductor can be run from the command line with conductor.py as new members connect the conductor will maintain a list of IP:port of connected members
+The conductor can be run from the command line with conductor.py as new members connect the conductor will maintain a list of IP:port of connected members.
 
 
 ### Using the Member
 
 To use the member to share/get a file run member.py orch_filename the member will then get the file. A small progress bar is shown with the parts remaining and percentage, you can press q at any time to quit (this may take up to 5 seconds to cleaning close all conections)
-
+![Alt text](torrentNchill/screenshots/instructions_member.png?raw=true "Using the Member")
 
 
 ## System Architecture
 
 
-
+![Alt text](torrentNchill/screenshots/architecture.gif?raw=true "Example of connecting and sharing a part")
 
