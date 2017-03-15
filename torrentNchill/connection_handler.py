@@ -50,99 +50,74 @@ class ConnectionHandler(Thread):
                     logging.info('CON HANDLER: Exception connecting to %s %i', ip, port)
             elif message['msg'] == 'COND_IPS':
                 ip_list = []
-                if True:
-                    cond_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    try:
-                        ip = str.split(self.orch_dict['conductor_ip'], ':')[0]
-                        port = str.split(self.orch_dict['conductor_ip'], ':')[1]
 
-                        cond_socket.connect((ip, int(port)))
+                cond_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                try:
+                    ip = str.split(self.orch_dict['conductor_ip'], ':')[0]
+                    port = str.split(self.orch_dict['conductor_ip'], ':')[1]
 
-                        proto_down_msg = '{}\r\n{}\r\n{}\r\n{}\r\n'.format('DOWN',
-                                                                           self.orch_dict['composition_name'],
-                                                                           self.orch_dict['full_checksum'],
-                                                                           '10001')
-                        cond_socket.sendall(proto_down_msg.encode())
+                    cond_socket.connect((ip, int(port)))
 
-                        reply_msg = netutils.read_line(cond_socket)
-                        if reply_msg == 'NONE':
-                            filename = netutils.read_line(cond_socket)
-                            checksum = netutils.read_line(cond_socket)
-                            if filename != self.orch_dict['composition_name']:
-                                logging.info('CON HANDLER: Error in filename')
-                                cond_socket.shutdown(socket.SHUT_RDWR)
-                                cond_socket.close()
-                                return
-                            if checksum != self.orch_dict['full_checksum']:
-                                logging.info('CON HANDLER: Error in checksum name')
-                                cond_socket.shutdown(socket.SHUT_RDWR)
-                                cond_socket.close()
-                                return
-                        elif reply_msg == 'SEND':
-                            filename = netutils.read_line(cond_socket)
-                            checksum = netutils.read_line(cond_socket)
-                            num_ips = netutils.read_line(cond_socket)
-                            if filename != self.orch_dict['composition_name']:
-                                logging.info('CON HANDLER: Error in filename')
-                                cond_socket.shutdown(socket.SHUT_RDWR)
-                                cond_socket.close()
-                                return
-                            if checksum != self.orch_dict['full_checksum']:
-                                logging.info('CON HANDLER: Error in checksum name')
-                                cond_socket.shutdown(socket.SHUT_RDWR)
-                                cond_socket.close()
-                                return
-                            if int(num_ips) < 0 or int(
-                                    num_ips) > 1000000:  # I very much doubt we will have more than 1 million
-                                logging.info('CON HANDLER: Error in num_ips')
-                                cond_socket.shutdown(socket.SHUT_RDWR)
-                                cond_socket.close()
-                                return
+                    proto_down_msg = '{}\r\n{}\r\n{}\r\n{}\r\n'.format('DOWN',
+                                                                       self.orch_dict['composition_name'],
+                                                                       self.orch_dict['full_checksum'],
+                                                                       '10001')
+                    cond_socket.sendall(proto_down_msg.encode())
 
-                            for i in range(int(num_ips)):
-                                ip_port = netutils.read_line(cond_socket)
-                                ip_list.append(ip_port)
-                                logging.info('CON HANDLER: Received ip: %s', ip_port)
-
-                        else:
-                            logging.info('Error in getting IPs from conductor')
-
-                    except socket.error as er:
-                        logging.warning('CON HANDLER: Exception %s', er)
-                    finally:
-                        try:
-                            logging.info('CON HANDLER: trying to closing connection')
+                    reply_msg = netutils.read_line(cond_socket)
+                    if reply_msg == 'NONE':
+                        filename = netutils.read_line(cond_socket)
+                        checksum = netutils.read_line(cond_socket)
+                        if filename != self.orch_dict['composition_name']:
+                            logging.info('CON HANDLER: Error in filename')
                             cond_socket.shutdown(socket.SHUT_RDWR)
                             cond_socket.close()
-                        except socket.error as er:
-                            logging.warning(er)
-                        finally:
-                            logging.info('CON HANDLER: Connection closed')
-                else:
-                    cond_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    try:
-                        ip = str.split(self.orch_dict['conductor_ip'], ':')[0]
-                        port = str.split(self.orch_dict['conductor_ip'], ':')[1]
-
-                        cond_socket.connect((ip, int(port)))
-                        logging.info('CON HANDLER: Getting IPs from conductor on IP %s %s %s', ip, 'port', port)
-                        msg = netutils.read_line(cond_socket)
-                        while msg:
-                            ip_list.append(msg)
-                            logging.info('CON HANDLER: Received message: %s', msg)
-                            msg = netutils.read_line(cond_socket)
-                    except socket.error as er:
-                        print(er)
-                    finally:
-                        try:
-                            logging.info('CON HANDLER: trying to closing connection')
+                            return
+                        if checksum != self.orch_dict['full_checksum']:
+                            logging.info('CON HANDLER: Error in checksum name')
                             cond_socket.shutdown(socket.SHUT_RDWR)
                             cond_socket.close()
-                        except socket.error as er:
-                            logging.warning(er)
-                        finally:
-                            logging.info('CON HANDLER: Connection closed')
+                            return
+                    elif reply_msg == 'SEND':
+                        filename = netutils.read_line(cond_socket)
+                        checksum = netutils.read_line(cond_socket)
+                        num_ips = netutils.read_line(cond_socket)
+                        if filename != self.orch_dict['composition_name']:
+                            logging.info('CON HANDLER: Error in filename')
+                            cond_socket.shutdown(socket.SHUT_RDWR)
+                            cond_socket.close()
+                            return
+                        if checksum != self.orch_dict['full_checksum']:
+                            logging.info('CON HANDLER: Error in checksum name')
+                            cond_socket.shutdown(socket.SHUT_RDWR)
+                            cond_socket.close()
+                            return
+                        if int(num_ips) < 0 or int(
+                                num_ips) > 1000000:  # I very much doubt we will have more than 1 million
+                            logging.info('CON HANDLER: Error in num_ips')
+                            cond_socket.shutdown(socket.SHUT_RDWR)
+                            cond_socket.close()
+                            return
 
+                        for i in range(int(num_ips)):
+                            ip_port = netutils.read_line(cond_socket)
+                            ip_list.append(ip_port)
+                            logging.info('CON HANDLER: Received ip: %s', ip_port)
+
+                    else:
+                        logging.info('Error in getting IPs from conductor')
+
+                except socket.error as er:
+                    logging.warning('CON HANDLER: Exception %s', er)
+                finally:
+                    try:
+                        logging.info('CON HANDLER: trying to closing connection')
+                        cond_socket.shutdown(socket.SHUT_RDWR)
+                        cond_socket.close()
+                    except socket.error as er:
+                        logging.warning(er)
+                    finally:
+                        logging.info('CON HANDLER: Connection closed')
 
                 message = {'msg': 'COND_IPS', 'ip_list': ip_list}
                 self.out_queue.put(message)

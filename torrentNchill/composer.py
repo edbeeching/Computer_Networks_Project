@@ -1,9 +1,15 @@
 import hashlib
 import os
+import sys
 """
     Created by Edward Beeching 24/01/2017
     The function create_orchestra(...) will generate an orchestra file (.file). For a give input file
     By default the output file is the input filename with .orch appended and the part size is 16*2014 Bytes
+
+    The composer can be ran form the command line with three optioons
+    composer.py filename
+    composer.py filename conductor_ip_port
+    composer.py filename conductor_ip_port part_size
 
     .orch files contain:
     #   Conductor
@@ -28,7 +34,7 @@ def _get_split_checksums(file_name, part_size=16 * 1024):
                     hasher = hashlib.sha1()
                     hasher.update(bytes_read)
                     chunk_sums[part_num] = (hasher.hexdigest(), len(bytes_read))
-                    # print('part', part_num, len(bytes_read),hasher.hexdigest())
+                    #print('part', part_num, len(bytes_read),hasher.hexdigest())
                     bytes_read = file.read(part_size)
                     part_num += 1
             except IOError as er:
@@ -89,7 +95,7 @@ def create_orchestra(input_file_name, output_file_name=None, part_size=16 * 1024
                 output.write(str(part_size) + "\n")
                 checksums = _get_split_checksums(input_file_name, part_size=part_size)
                 output.write(str(len(checksums)) + "\n")
-                for part_key in check_sums:
+                for part_key in checksums:
                     (checksum, _) = checksums[part_key]
                     output.write(checksum + "\n")
             except IOError as er:
@@ -101,6 +107,28 @@ def create_orchestra(input_file_name, output_file_name=None, part_size=16 * 1024
 
 
 if __name__ == "__main__":
+
+    filename = ""
+    if len(sys.argv) > 1:
+        filename = sys.argv[1]
+        if len(sys.argv) > 3:
+            create_orchestra(filename, conductor=sys.argv[2], part_size=int(sys.argv[3]))
+        elif len(sys.argv) > 2:
+            create_orchestra(filename, conductor=sys.argv[2])
+        else:
+            print('Note the conductor cna be provided  as a second command line agrument')
+            create_orchestra(filename)
+    else:
+        print('Please provide a filename')
+        print('e.g composer.py filename')
+        print('or composer.py filename conductor_ip_port')
+        print('or composer.py filename conductor_ip_port part_size')
+
+    exit()
+
+    # Testing
+    filename ="files/Sciences.M1ML.complete.zip"
+    create_orchestra(filename)
 
     partsize = 16 * 1024  # 16KB chunk size
     filename = "files/Sciences.M1ML.complete.zip"

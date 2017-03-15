@@ -5,13 +5,11 @@ import time
 import copy
 import random
 import queue
-import socket
 import logging
 from threading import Thread, Timer
 
 import connection_handler
 import connection
-import netutils
 import file_handler
 import monitor
 
@@ -65,8 +63,6 @@ import monitor
         # DIRECTOR SENDS
             message = {'msg': 'GIVE_PART', 'conn':Connection, 'part': number}
             message = {'msg': 'WRITE_PART', 'conn':Connection, 'part': number, 'data': data}
-
-
 '''
 
 
@@ -153,9 +149,7 @@ class Member(Thread):
                 # print('MEMBER: Message is other')
 
             else:
-                logging.warning('MEMBER: Could not read message', message)
-                # # TODO REMOVE this sleep in the final version
-                # time.sleep(0.1)
+                logging.warning('MEMBER: Could not read message %s', message)
 
     def _handle_director_connection_msg(self, message):
         """
@@ -358,10 +352,6 @@ class Member(Thread):
             logging.info('MEMBER: Connection has no parts available to retrieve')
 
     def _get_ips_from_conductor(self, ip_list):
-
-        # Updating with the protocol
-        # TODO if this blocks is will hang the whole program
-
         for ip in ip_list:
             if self.list_of_orch_ips.get(ip):
                 # We already have this in the list
@@ -407,7 +397,7 @@ class Member(Thread):
         con.start()
         # Add to up the dictionaries
 
-        ip, port = sock.getpeername()
+        ip, _ = sock.getpeername()
         self.connections_ip_dict[con] = ip
         # self.ip_connections_dict[ip] = con
         self.connections_parts_dict[con] = 0
@@ -518,10 +508,14 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         member = Member(sys.argv[1])
     else:
+        print('Please provide a .orch file')
+        print('e.g member.py filename.orch')
+        print('You can use the composer to generate new .orch files if needed')
+        exit()
         # orch = 'maxresdefault.jpg.orch'
         #orch = 'ATJ.jpg.orch'
-        orch = 'Sciences.M1ML.complete.zip.orch'
-        member = Member(orch)
+        # orch = 'Sciences.M1ML.complete.zip.orch'
+        # member = Member(orch)
 
     member.start()
     member.join()
