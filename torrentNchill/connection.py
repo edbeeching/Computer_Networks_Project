@@ -16,9 +16,8 @@ import logging
 """
 
 
+# Connection: handles the protocol related exchange between two members
 class Connection:
-    # Can send or receive?
-    # This flag is set to false after an socket i/o error
     # socket: a reference to the socket created before the connection is instantiated
     # member: a reference to the member
     def __init__(self, sock, dictionary, send_queue, member_queue):
@@ -192,7 +191,7 @@ class Connection:
                 return
 
     # Read a line from socket
-    # Taken from the practical sessions by Prof. Emonet
+    # Taken from the practical sessions of Prof. Emonet
     @staticmethod
     def _read_line(sock):
         sock.setblocking(1)
