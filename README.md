@@ -1,7 +1,6 @@
-Contents
-* a paragraph at least about your subject
-* instructions on how to obtain, build, run, test, ..., your project
-* a description of the architecture (what parts interacts how with what other parts)
+# Semester 2 Computer Networks Project
+## Université Jean-Monnet, Saint-Étienne, France.
+## Peer to Peer file sharing
 
 # Contents
 * Description of the subject
@@ -50,7 +49,7 @@ composer.py filename conductor_ip_port
 composer.py filename conductor_ip_port part_size
 
 If the ip and port are note know, the file line of the text file generated can be updated at a later stage.
-
+![Alt text](torrentNchill/screenshots/instructions_composer.pngg?raw=true "The Game UI")
 ### Using the Conductor
 
 The conductor can be run from the command line with conductor.py as new members connect the conductor will maintain a list of IP:port of connected members
