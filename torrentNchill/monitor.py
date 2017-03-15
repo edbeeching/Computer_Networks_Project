@@ -4,15 +4,13 @@
     # Provide a progress bar that monitors the progress of the file transfer.
     # Displays information such as:
         # % completion
-        # Download Rate
-        # Upload Rate
 
     # Needs the following information:
-        # Part size
-        # Number of parts
-        # 
 
+        # Number of parts
 '''
+
+
 from threading import Thread
 import progressbar
 import queue
@@ -30,11 +28,8 @@ class Monitor(Thread):
         self.parts_recieved = have_parts
         self.bar = progressbar.ProgressBar(max_value=total_parts, redirect_stdout=True)
 
-
-
-
     def run(self):
-        #kb = kbhit.KBHit()
+        kb = kbhit.KBHit()
         print('Starting monitor, press q to exit')
         self.bar.update(self.parts_recieved)
         while True:
@@ -47,15 +42,15 @@ class Monitor(Thread):
                 if message['msg'] == 'END':
                     break
             else:
-                # if kb.kbhit():
-                #     c = kb.getch()
-                #     if c is 'q':  # Press q to exit
-                #         print('q pressed')
-                #         self.out_queue.put({'msg': 'CLOSE'})
-                #         self.bar.finish()
-                #         logging.info('MONITOR: Returning')
-                #         return
-                #         #break
+                if kb.kbhit():
+                    c = kb.getch()
+                    if c is 'q':  # Press q to exit
+                        print('q pressed')
+                        self.out_queue.put({'msg': 'CLOSE'})
+                        self.bar.finish()
+                        logging.info('MONITOR: Returning')
+                        return
+                        #break
                 time.sleep(0.1)
 
 

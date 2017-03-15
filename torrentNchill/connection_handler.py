@@ -16,13 +16,27 @@ class ConnectionHandler(Thread):
 
         self.listener = Thread(target=self._connection_listener, args=(self.out_queue,))
 
+
     def run(self):
         self.listener.start()
         while True:
             logging.info('CON HANDLER: Looking at connection handler queue')
             message = self.in_queue.get()
 
-            if message['msg'] == 'CRTCON':
+            if message['msg'] == 'CLOSE':
+                try:
+                    self.server_socket.shutdown(socket.SHUT_RDWR)
+                    self.server_socket.close()
+                except socket.error as er:
+                    logging.warning('CON HANDLER: Exception shutting down server socket %s', er)
+                    try:
+                        self.server_socket.close()
+                    except socket as er:
+                        logging.warning('CON HANDLER: Exception closing down server socket %s', er)
+                self.listener.join(timeout=1)
+                return
+
+            elif message['msg'] == 'CRTCON':
                 ip = message['ip']
                 port = int(message['port'])
                 logging.info('CON HANDLER: %s %s %s %s', 'Connection to ip:', ip, 'port', port)
@@ -52,6 +66,7 @@ class ConnectionHandler(Thread):
                 ip_list = []
 
                 cond_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                cond_socket.settimeout(1)
                 try:
                     ip = str.split(self.orch_dict['conductor_ip'], ':')[0]
                     port = str.split(self.orch_dict['conductor_ip'], ':')[1]
@@ -122,17 +137,6 @@ class ConnectionHandler(Thread):
                 message = {'msg': 'COND_IPS', 'ip_list': ip_list}
                 self.out_queue.put(message)
 
-            elif message['msg'] == 'CLOSE':
-                try:
-                    self.server_socket.shutdown(socket.SHUT_RDWR)
-                    self.server_socket.close()
-                except socket.error as er:
-                    logging.warning('CON HANDLER: Exception shutting down server socket %s', er)
-                    try:
-                        self.server_socket.close()
-                    except socket as er:
-                        logging.warning('CON HANDLER: Exception closing down server socket %s', er)
-                return
             else:
                 logging.info('CON HANDLER: Message is not understood')
 

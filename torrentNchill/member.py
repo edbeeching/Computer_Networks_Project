@@ -21,11 +21,6 @@ import monitor
         2. A FileHandler who handles reading and writing parts from disk
         3. A Set of Connections which send and receive requests / data from other Members on the network
 
-        # Remaining tasks
-            Improved exception handling
-            Clean exit, list for keyboard input?
-
-
     The member communicates with instances of the Connection Class with the following messages:
         # DIRECTOR RECEIVES
             message = {'msg': 'RECEIVED_PART', 'conn':Connection, 'part': number, 'data': data}
@@ -68,86 +63,69 @@ import monitor
 
 class Member(Thread):
     def __init__(self, orch_filename):
-        logging.basicConfig(format='%(asctime)s %(message)s', filename='logs/log1.log', filemode='w',
-                            level=logging.DEBUG)
+
         # Initialise the thread
         Thread.__init__(self)
-
-        # load orch file info and print it
-
-        # queue holding messages from connections
-        # queue to hold messages from CEO ? two constructors for the messages
-        # dict of IP:PORT: AVAILABLE PARTS
-        # dict of Connections: IP:PORT are dicts mutable?
-        # filename of file
-        # load orch into member
-        # dict of parts / checksums
-        # listener to find new connections from other peers
+        # Set up the log file for logging
+        logging.basicConfig(format='%(asctime)s %(message)s', filename='logs/log1.log', filemode='w',
+                            level=logging.DEBUG)
+        # load orch file info, these methods are static so easy testing
         self.orch_dict = Member._get_orch_parameters(orch_filename)
         logging.info('MEMBER: Orch Dict %s', self.orch_dict)
-
+        # Make a dummy file if the file does not exist
         Member._write_dummy_composition(self.orch_dict.get('composition_name'),
                                         self.orch_dict.get('total_bytes'))
-
+        #
         self.parts_dict = Member._get_parts_dict(self.orch_dict.get('composition_name'),
                                                  self.orch_dict.get('bytes_per_part'),
                                                  self.orch_dict.get('parts_checksum_dict'))
+        # Initialise dicts that will be for quick lookup of ips, parts lists, transfers etc...
         self.connections_ip_dict = {}
-        # self.ip_connections_dict = {}
         self.connections_parts_dict = {}
         self.active_transfers = {}
         self.connections_queue_dict = {}
         self.list_of_orch_ips = {}
+
+        # The "director" queue for recieving messages, we add a message to it to check the conductor
         self.director_queue = queue.Queue()
         message = {'msg': 'CONDUCTOR'}
         self.director_queue.put(message)
 
-        # Start thread that handles connections
+        # Initialise the connection handler
         self.connect_queue = queue.Queue()
         self.con_handler = connection_handler.ConnectionHandler(self.connect_queue, self.director_queue, self.orch_dict)
         # Starts a thread that handles reading & writing parts to disk
         self.file_queue = queue.Queue()
         self.f_handler = file_handler.FileHandler(self.orch_dict, self.file_queue, self.director_queue)
         # Starts a thread that handles monitoring progress for output in terminal
-        # First count to see if we have any parts already
+        # First count to see how many parts we have already
         has_parts = len([i for i in self.parts_dict.values() if i is True])
 
+        # A monitor thread the shows a progress bar in the terminal
         self.monitor_queue = queue.Queue()
         self.mon = monitor.Monitor(has_parts, self.orch_dict['num_parts'], self.monitor_queue, self.director_queue)
 
-
     def run(self):
+        # Start all the other threads going
         self.con_handler.start()
         self.f_handler.start()
         self.mon.start()
         while True:
-
             # Poll queue
             message = self.director_queue.get()
             # Respond to messages
-            # print('MEMBER: Received message:', message['msg'])
             if self._handle_director_connection_msg(message):
                 pass
-                # print('MEMBER:', message, ' was handled by DIR - CONN')
-
             elif self._handle_director_con_handle_msg(message):
                 pass
-                # print('MEMBER:', message,  'was handled by DIR - CONN HANDLER')
-
             elif self._handle_director_file_handle_msg(message):
                 pass
-                # print('MEMBER:', message, ' was handled by DIR- FILE HANDLER')
             elif message['msg'] == 'CLOSE':
                 print('Trying to exit gracefully')
                 logging.info('MEMBER: Trying to exit gracefully')
-                self._clean_exit() # Try and exit gracefully
+                self._clean_exit()  # Try and exit cleanly
                 logging.info('MEMBER: Returning')
                 return
-                # break
-            elif message['msg'] == 'OTHER':
-                pass
-                # print('MEMBER: Message is other')
-
             else:
                 logging.warning('MEMBER: Could not read message %s', message)
 
@@ -174,7 +152,6 @@ class Member(Thread):
         """
 
         if message['msg'] == 'PARTS_LIST_REQUEST':
-            # print('MEMBER: PARTS LIST REQUEST')
             self._handle_parts_list_request(message)
             return True
 
@@ -183,30 +160,27 @@ class Member(Thread):
             return True
 
         elif message['msg'] == 'RECEIVED_PART':
-            # Send to filehandler message = {'msg': 'WRITE_PART', 'conn': Connection, 'part': number, 'data': data}
             if not self._checksum_part(message):
                 logging.warning('MEMBER: Invalid part received, part number:%s %s %s', message['part'], 'Connection:',
                                 message['conn'])
                 self._assign_parts_request(message['conn'])
                 return
 
-            logging.info('MEMBER: Valid part received, part number:%s %s %s', message['part'], 'Connection:',
-                         message['conn'])
-            out_message = {'msg': 'WRITE_PART', 'conn': message['conn'], 'part': message['part'],
-                           'data': message['data']}
+            logging.info('MEMBER: Valid part received, part number:%s %s %s', message['part'], 'Connection:', message['conn'])
+            out_message = {'msg': 'WRITE_PART', 'conn': message['conn'], 'part': message['part'], 'data': message['data']}
+
             tot_parts = len([i for i in self.parts_dict.values() if i is True])
             self.monitor_queue.put({'msg': 'PARTS', 'parts': tot_parts})
             self.file_queue.put(out_message)
             self.parts_dict[message['part']] = True
+
             if message['conn'] in self.active_transfers:
                 self.active_transfers.pop(message['conn'])
 
             self._assign_parts_request(message['conn'])
-
             return True
 
         elif message['msg'] == 'PART_REQUEST':
-            # Send to filehandler message = {'msg': 'GIVE_PART', 'conn': Connection, 'part': number}
             out_message = {'msg': 'GIVE_PART', 'conn': message['conn'], 'part': message['part']}
             self.file_queue.put(out_message)
             return True
@@ -229,12 +203,13 @@ class Member(Thread):
             message = {'msg': 'COND_IPS'}
         """
         if message['msg'] == 'CONDUCTOR':
-
             self.connect_queue.put({'msg': 'COND_IPS'})
             return True
+
         elif message['msg'] == 'COND_IPS':
             self._get_ips_from_conductor(message['ip_list'])
             return True
+
         elif message['msg'] == 'POLL':
             self._poll_ips()
             return True
@@ -243,6 +218,7 @@ class Member(Thread):
             socket = message['sock']
             self._create_connection(socket)
             return True
+
         else:
             return False
 
@@ -262,7 +238,6 @@ class Member(Thread):
             if conn not in self.connections_queue_dict:
                 return
             con_queue = self.connections_queue_dict[conn]
-            # message = {'msg': 'SEND_PART', 'part': number, 'data': data}
             out_message = {'msg': 'SEND_PART', 'part': message['part'], 'data': message['data']}
             con_queue.put(out_message)
             return True
@@ -275,14 +250,10 @@ class Member(Thread):
             return False
 
     def _remove_connection(self, conn):
-
         # Removes entries of conn for all the connection dicts
         logging.info('MEMBER: Connection closing %s', conn)
         if conn in self.connections_ip_dict:
-            # ip = self.connections_ip_dict
             del self.connections_ip_dict[conn]
-            # if ip in self.ip_connections_dict:
-            #     del self.ip_connections_dict[ip]
         if conn in self.connections_parts_dict:
             del self.connections_parts_dict[conn]
         if conn in self.connections_queue_dict:
@@ -294,21 +265,19 @@ class Member(Thread):
         # Try and make a clean exit by passing all handlers the CLOSE message
         self.connect_queue.put({'msg': 'CLOSE'})
         self.file_queue.put({'msg': 'CLOSE'})
+        print('Closing connections')
         for q in self.connections_queue_dict.values():
             q.put({'msg': 'CLOSE'})
-        # Give them half a second to close gracefully
-        time.sleep(0.5)
         logging.info('MEMBER: Joining ConnectionHandler')
+        print('Closing connection handler thread')
         self.con_handler.join()
         logging.info('MEMBER: Joining FileHandler')
+        print('Closing file handler thread')
         self.f_handler.join()
-        # for con in self.connections_queue_dict.keys():
-        #     logging.info('MEMBER: Joining Connections')
-        #     con.join()
         logging.info('MEMBER: Joining Monitor')
+        print('Closing monitor handler thread')
         self.mon.join()
         logging.info('MEMBER: All threads joined, exiting')
-
 
     def _handle_parts_list_request(self, message):
         parts_int = Member._get_parts_int(self.parts_dict)
@@ -331,10 +300,10 @@ class Member(Thread):
     def _assign_parts_request(self, conn):
         if conn in self.active_transfers:
             logging.info(
-                'MEMBER: Note that a connection with an active transfer is being assigned another part, returning')
+                 logging.info('MEMBER: Note that a connection with an active transfer is being assigned another part'))
             return
 
-        # The most Pythonic statements I've ever writen
+        # Nice Pythonic statements to find the parts that are needed the reason for set is fast lookup
         unassigned_parts = [i for i in self.parts_dict.keys() if self.parts_dict.get(i) is False]
         parts_needed = [i for i in unassigned_parts if i not in set(self.active_transfers.keys())]
 
@@ -342,13 +311,20 @@ class Member(Thread):
             # Get a random index and that part will be assigned for this connection
             rand_int = random.randrange(0, len(parts_needed))
             message = {'msg': 'REQUEST_PART', 'part': parts_needed[rand_int]}
-            # if conn not in self.connections_queue_dict[conn]:
-            #     return
+            if conn not in self.connections_queue_dict:
+                return
             self.connections_queue_dict[conn].put(message)
             self.active_transfers[conn] = parts_needed[rand_int]
         else:
             # There are no parts available for this connection to retrieve (perhaps send a timer here
             # TODO Add a timer here
+            if conn not in self.connections_queue_dict:
+                return
+            # send a delayed message asking for a new parts list
+            conn_queue = self.connections_queue_dict[conn]
+            delayed_message = {'msg': 'REQUEST_PARTS_LIST'}
+            timer = Timer(5, Member._delayed_message, (conn_queue, delayed_message))
+            timer.start()
             logging.info('MEMBER: Connection has no parts available to retrieve')
 
     def _get_ips_from_conductor(self, ip_list):
