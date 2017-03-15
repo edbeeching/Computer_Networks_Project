@@ -10,7 +10,7 @@ Contents: about organization of the work, technology, etc
 -->
 
 # Group D torrentNchill Retrospective
-## Documentation of the issues, solutions and future work related to the planning and implementation of the project.
+## Documentation of the issues, solutions and future works related to the planning and implementation of the project.
 
 ### 1. Technology
 * We used Python Version 3.5 to implement the project. Familiarity of the language to most of the members was the primary reason for choosing Python. Also the exercises and examples during the Computer Network lab session provided a good direction towards threading and network programming in general. 
@@ -38,7 +38,7 @@ Contents: about organization of the work, technology, etc
  Cross-language compatibility test was doing in collaboration with Group E, who are using Java. The system was able to send and receive files in accordance to the protocol described and followed by both the teams.
  
 ### 3. Challenges faced
-* We found thread synchronization and specially it's debugging to be difficult.
+* We found thread synchronization and specially its debugging to be difficult.
 * A lot of time was spent to research about other asynchronous concurrent models like coroutines.
 * The modules for the software are very corelated and hence it was difficult to design and structure modules to work as independently as possible. 
 * We tried to design a GUI for the software. A lot of time was spent on trying to set up and use PyQt5, and the various ways to be able to intercept the various threads for the software from the UI calls. 
