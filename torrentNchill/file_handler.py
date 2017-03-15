@@ -5,7 +5,7 @@ import hashlib
 
     @author: Sejal
     Created on: Tue, Feb 21
-    Last updated: Tue, Mar 7
+    Last updated: Tue, Mar 15
 
     The file handler is responsible for reading/writing a file.
     This can be done either directly to/from the file or to/from the memory (buffer).
@@ -37,7 +37,7 @@ class FileHandler(Thread):
         self.memory = {}
         self.recently_used = []
 
-
+    # Write to the file in the Disc
     @staticmethod
     def write_part(composition_name, bytes_per_part, part, data):
             position = bytes_per_part * (part - 1)
@@ -51,6 +51,7 @@ class FileHandler(Thread):
                 file.close()
             return
 
+    # Read from the file by accessing it from the Disc
     @staticmethod
     def read_part(composition_name, bytes_per_part, part):
         position = bytes_per_part * (part - 1)
@@ -75,33 +76,35 @@ class FileHandler(Thread):
             bytes_per_part = self.dictionary['bytes_per_part']
 
             # Read the dictionary containing meta-data of the parts: _get_parts_dict [member.py]
+            # If the message is for a Write command
             if command['msg'] == 'WRITE_PART':
                 part = command['part']
                 data = command['data']
+                # Write to the file in Disc
                 FileHandler.write_part(composition_name, bytes_per_part, part, data)
 
+                # Writing the part in Memory
+                # Check if there is still space in memory, else make space by deleting the oldest part/item and then write
                 if len(self.memory) <= 6000:
                     self.memory[part] = data
                     self.recently_used.append(part)
                 else:
-                    oldest = self.recently_used.pop(0)  # returns the key to the oldest item
+                    oldest = self.recently_used.pop(0)  # Returns the key to the oldest item
                     del self.memory[oldest]
                     self.memory[part] = data
                     self.recently_used.append(part)
 
-
-
+            # If the message is for a Read command
             elif command['msg'] == 'GIVE_PART':
-
                 part = command['part']
                 Connection = command['conn']
 
-                #For now, fetch directly from the file rather than in buffer.
+                # Find out the part that is requested
                 part_requested = FileHandler.read_part(composition_name, bytes_per_part, part)
                 message = {'msg': 'GOT_PART', 'conn': Connection, 'part': part, 'data': part_requested}
                 self.out_queue.put(message)
 
-                #First check in dictionary, if it exists in memory
+                #First check in dictionary to see if it exists in memory
                 #If yes, fetch from memory
 
                 logging.info('FILE HANDLER: Checking for part in the memory.')
@@ -111,11 +114,14 @@ class FileHandler(Thread):
                     message = {'msg': 'GOT_PART', 'conn': Connection, 'part': part, 'data': part_requested}
                     self.out_queue.put(message)
                 else:
+                    # If the part is not in Memory, fetch from the Disc
+                    # After fetching from disc, also write it to the Memory
                     part_requested = FileHandler.read_part(composition_name, bytes_per_part, part)
                     if len(self.memory) <= 6000:
                         self.memory[part] = part_requested
                         self.recently_used.append(part)
                     else:
+                        # Check for the size of the memory
                         oldest = self.recently_used.pop(0)  # returns the key to the oldest item
                         del self.memory[oldest]
                         self.memory[part] = part_requested
@@ -123,7 +129,7 @@ class FileHandler(Thread):
                     message = {'msg': 'GOT_PART', 'conn': Connection, 'part': part, 'data': part_requested}
                     self.out_queue.put(message)
 
-                #To manange incase the fetch was unsuccesful
+            # Incase the fetch was unsuccesful
             elif command['msg'] == 'CLOSE':
                 # TODO Check this does not cause other issues
                 logging.info('FILE HANDLER: Closing')
@@ -131,11 +137,6 @@ class FileHandler(Thread):
             else:
                 logging.warning('FILE HANDLER: Message is not understood %s', message)
 
-# Idea: For the memory,implement a linked list of five/ten recently used itemset. Once the 10 items are full,
-# simply delete the least recently link and add a new one. Then keep a dictionary
-# which gives the name, detail of the file part, etc stored in the linked list and its link number.
-# Whenever a part is to be checked for, then we simply need to access this dictionary and if present
-# fetch the part from the linked list.
 
 
 if __name__ == "__main__":
@@ -179,5 +180,3 @@ if __name__ == "__main__":
     print('Out queue message 2:', new_message_2)
 
     print(fileHandler.memory)
-
-

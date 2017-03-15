@@ -1,14 +1,11 @@
 """
-
 Creating a skeleton of a basic GUI.
-This is to only test if the libraries work.
-Difficulty: using PyQt5 on Mac.
 
 To do: Add Pause, Stop, Start feature.
 
 Created on Mon, Feb 6
 @author: Sejal
-Last updated: Tue, Feb 14
+Last updated: Tue, Feb 24
 
 """
 

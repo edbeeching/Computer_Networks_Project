@@ -34,7 +34,7 @@ class Monitor(Thread):
 
 
     def run(self):
-        kb = kbhit.KBHit()
+        #kb = kbhit.KBHit()
         print('Starting monitor, press q to exit')
         self.bar.update(self.parts_recieved)
         while True:
@@ -47,15 +47,15 @@ class Monitor(Thread):
                 if message['msg'] == 'END':
                     break
             else:
-                if kb.kbhit():
-                    c = kb.getch()
-                    if c is 'q':  # Press q to exit
-                        print('q pressed')
-                        self.out_queue.put({'msg': 'CLOSE'})
-                        self.bar.finish()
-                        logging.info('MONITOR: Returning')
-                        return
-                        #break
+                # if kb.kbhit():
+                #     c = kb.getch()
+                #     if c is 'q':  # Press q to exit
+                #         print('q pressed')
+                #         self.out_queue.put({'msg': 'CLOSE'})
+                #         self.bar.finish()
+                #         logging.info('MONITOR: Returning')
+                #         return
+                #         #break
                 time.sleep(0.1)
 
 
