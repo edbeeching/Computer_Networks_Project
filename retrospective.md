@@ -52,6 +52,6 @@ Contents: about organization of the work, technology, etc
 * Good design of the protocol and it's proper implementation helped in dealing with corner/stress cases. This also helped with cross-language testing with the other team.
 * Realised the importance of good development practises and the flexibility, understanding it provides specially when multiple people are working on the same module/code.
 
-#### 4.2 Until next time (What can be done differently?)
+##### 4.2 Until next time (What can be done differently?)
 * We programmed the software using multi-threads rather than multi-processing. Maybe it is a better idea to use multi-programming for this kind of situation. Using multiprocessing would be an easier and better way to get around the Global Interpreter Lock so as to not write on the same memory space, unlike in multi-threading.
 * Follow up with a fully functional GUI to be able to present the software better to a person with limited knowledge of networking.
