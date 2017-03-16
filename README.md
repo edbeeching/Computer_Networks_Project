@@ -36,7 +36,7 @@ A small utility program that will take an input Composition (file) and generate 
 A networked program that provides IP:ports of users that are sharing parts of the Composition.
 
 ### Member 
-The core program that is used to get/share the Composition, this requires the .orch file to know detail of what composition to share/download.
+The core program that is used to get/share the Composition, this requires the .orch file to know details of which composition to share/download.
 
 ## Instructions for using the program
 
@@ -71,7 +71,7 @@ To use the member to share/get a file run **member.py orch_filename** the member
 ## System Architecture
 ### Simple UML Diagram of Member
 
-Classes commiunicate through messages on blocking queues. The use of queues always for easy testing of individual classes and functions.
+Classes commiunicate through messages on blocking queues. The use of queues allows for easy testing of individual classes and functions.
 ![Alt text](torrentNchill/screenshots/Simple_UML.png?raw=true "A simplfied UML diagram")
 
 ### Example animation of Member architecture
