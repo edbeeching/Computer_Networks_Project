@@ -38,7 +38,7 @@ A networked program that provides IP:ports of users that are sharing parts of th
 ### Member 
 The core program that is used to get/share the Composition, this requires the .orch file to know detail of what composition to share/download.
 
-## Intructions for using the program
+## Instructions for using the program
 
 ### Dependancies
 The software is tested to run on Python 3.5, it may work on Python 2.7 but this has not been tested.
