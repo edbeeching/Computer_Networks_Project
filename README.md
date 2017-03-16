@@ -62,7 +62,12 @@ To use the member to share/get a file run member.py orch_filename the member wil
 
 
 ## System Architecture
+# Simple UML Diagram of Member
+
+Classes commiunicate through messages on blocking queues. The use of queues always for easy testing of individual classes and functions.
+![Alt text](torrentNchill/screenshots/Simple_UML.png?raw=true "A simplfied UML diagram")
 
 
+Below is a simplified animation of the Member instantiation, connection and sharing one part.
 ![Alt text](torrentNchill/screenshots/architecture.gif?raw=true "Example of connecting and sharing a part")
 
