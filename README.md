@@ -42,7 +42,7 @@ The core program that is used to get/share the Composition, this requires the .o
 
 ### Dependancies
 The software is tested to run on Python 3.5, it may work on Python 2.7 but this has not been tested.
-The following dependancy is included in the GitHub repository **progressbar2-3.12.0-py2.py3-none-any.whl** , this can be installed with pip or any other wheel installation package, be sure that it is installing to python3 as some systems default to python2. Note the .whl file is cross-platform and has been tested on Window, Linux (Ubuntu) and Mac OSX.
+The following dependancy is included in the GitHub repository **progressbar2-3.12.0-py2.py3-none-any.whl** , this can be installed with pip or any other wheel installation package, be sure that it is installing to python3 as some systems default to python2. Note the .whl file is cross-platform and has been tested on Windows, Linux (Ubuntu) and Mac OSX.
 
 For installation, simply clone the GitHub repository. **Note there is a .gitignore on a directory called "logs" so you will need to make this directory yourself otherwise there will be an error writing the log file.**
 
