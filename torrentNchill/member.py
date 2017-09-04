@@ -86,7 +86,7 @@ class Member(Thread):
         self.connections_queue_dict = {}
         self.list_of_orch_ips = {}
 
-        # The "director" queue for recieving messages, we add a message to it to check the conductor
+        # The "director" queue for recieving messages, we add a message to it to give the conductor
         self.director_queue = queue.Queue()
         message = {'msg': 'CONDUCTOR'}
         self.director_queue.put(message)
